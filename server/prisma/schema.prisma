@@ -74,7 +74,7 @@ model Item {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  category     Category
+  category     Category @relation(fields: [categoryId], references: [id])
   inventory    Inventory[]
   invoiceItems InvoiceItem[]
   poItems      PurchaseOrderItem[]
@@ -97,6 +97,7 @@ model Warehouse {
 
   // Relations
   inventory Inventory[]
+  receiving  Receiving[]
 
   @@map("warehouses")
 }
@@ -132,9 +133,9 @@ model Inventory {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  item      Item
-  warehouse Warehouse?
-  vehicle   Vehicle?
+  item      Item @relation(fields: [itemId], references: [id])
+  warehouse Warehouse? @relation(fields: [warehouseId], references: [id])
+  vehicle   Vehicle? @relation(fields: [vehicleId], references: [id])
 
   @@unique([itemId, warehouseId, vehicleId])
   @@map("inventory")
@@ -198,7 +199,7 @@ model Invoice {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  customer    Customer
+  customer    Customer @relation(fields: [customerId], references: [id])
   createdByUser User @relation("CreatedBy", fields: [createdBy], references: [id])
   items       InvoiceItem[]
 
@@ -223,8 +224,8 @@ model InvoiceItem {
   createdAt DateTime @default(now())
 
   // Relations
-  invoice Invoice
-  item    Item
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+  item    Item @relation(fields: [itemId], references: [id])
 
   @@map("invoice_items")
 }
@@ -246,8 +247,9 @@ model PurchaseOrder {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  vendor Vendor
+  vendor Vendor @relation(fields: [vendorId], references: [id])
   items  PurchaseOrderItem[]
+  receiving Receiving[]
 
   @@map("purchase_orders")
 }
@@ -270,8 +272,8 @@ model PurchaseOrderItem {
   createdAt DateTime @default(now())
 
   // Relations
-  purchaseOrder PurchaseOrder
-  item          Item
+  purchaseOrder PurchaseOrder @relation(fields: [poId], references: [id])
+  item          Item @relation(fields: [itemId], references: [id])
 
   @@map("purchase_order_items")
 }
@@ -289,9 +291,8 @@ model Receiving {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  purchaseOrder PurchaseOrder?
-  warehouse     Warehouse
-  receivedByUser User @relation("ReceivedBy", fields: [receivedBy], references: [id])
+  purchaseOrder PurchaseOrder? @relation(fields: [poId], references: [id])
+  warehouse     Warehouse @relation(fields: [warehouseId], references: [id])
   items         ReceivingItem[]
 
   @@map("receiving")
@@ -306,8 +307,8 @@ model ReceivingItem {
   createdAt   DateTime @default(now())
 
   // Relations
-  receiving Receiving
-  item     Item
+  receiving Receiving @relation(fields: [receivingId], references: [id])
+  item     Item @relation(fields: [itemId], references: [id])
 
   @@map("receiving_items")
 }
@@ -323,7 +324,7 @@ model Activity {
   createdAt DateTime @default(now())
 
   // Relations
-  user User
+  user User @relation(fields: [userId], references: [id])
 
   @@map("activities")
 } 

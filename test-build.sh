@@ -30,6 +30,7 @@ cd ../api && npm run build
 check_status "API build"
 
 echo "🔍 Checking build outputs..."
+cd ..
 if [ -d "client/build" ]; then
     echo "✅ Client build directory exists"
 else

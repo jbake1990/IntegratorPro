@@ -18,10 +18,11 @@ router.post('/register', async (req, res) => {
     });
 
     if (existingUser) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'User already exists'
       });
+      return;
     }
 
     // Hash password
@@ -83,27 +84,30 @@ router.post('/login', async (req, res) => {
     });
 
     if (!user) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'Invalid credentials'
       });
+      return;
     }
 
     // Check if user is active
     if (!user.isActive) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'Account is deactivated'
       });
+      return;
     }
 
     // Check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'Invalid credentials'
       });
+      return;
     }
 
     // Generate JWT token
@@ -181,19 +185,21 @@ router.put('/change-password', authMiddleware, async (req: AuthRequest, res) => 
     });
 
     if (!user) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         error: 'User not found'
       });
+      return;
     }
 
     // Verify current password
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'Current password is incorrect'
       });
+      return;
     }
 
     // Hash new password
