@@ -26,7 +26,7 @@ import ProtectedRoute from './components/Auth/ProtectedRoute';
 import { useAuth } from './hooks/useAuth';
 
 function App() {
-  const { isAuthenticated, user, loading } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
 
   // Show loading state
   if (loading) {
