@@ -7,9 +7,6 @@ export const useAuth = () => {
   const dispatch = useDispatch();
   const auth = useSelector((state: RootState) => state.auth);
 
-  // Debug logging
-  console.log('useAuth hook - Current auth state:', auth);
-
   const login = async (username: string, password: string) => {
     try {
       console.log('Attempting login with username:', username);

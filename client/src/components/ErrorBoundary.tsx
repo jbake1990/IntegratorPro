@@ -28,12 +28,12 @@ class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <Box sx={{ p: 3 }}>
-          <Alert severity="error" sx={{ mb: 2 }}>
+          <Alert severity="error">
             <Typography variant="h6" gutterBottom>
               Something went wrong
             </Typography>
             <Typography variant="body2" sx={{ mb: 2 }}>
-              {this.state.error?.message}
+              {this.state.error?.message || 'An unexpected error occurred'}
             </Typography>
             <Button 
               variant="contained" 
@@ -41,12 +41,6 @@ class ErrorBoundary extends Component<Props, State> {
               sx={{ mr: 1 }}
             >
               Reload Page
-            </Button>
-            <Button 
-              variant="outlined" 
-              onClick={() => this.setState({ hasError: false })}
-            >
-              Try Again
             </Button>
           </Alert>
         </Box>

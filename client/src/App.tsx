@@ -44,17 +44,6 @@ function App() {
     );
   }
 
-  // Show error if there's an issue
-  if (!isAuthenticated && localStorage.getItem('token')) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="warning">
-          Authentication state mismatch. Please try logging in again.
-        </Alert>
-      </Box>
-    );
-  }
-
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
       <Routes>
