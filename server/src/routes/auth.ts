@@ -10,17 +10,22 @@ const router = express.Router();
 // Register new user
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, firstName, lastName, role } = req.body;
+    const { username, email, password, firstName, lastName, role } = req.body;
 
     // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email }
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { username },
+          { email }
+        ]
+      }
     });
 
     if (existingUser) {
       res.status(400).json({
         success: false,
-        error: 'User already exists'
+        error: 'Username or email already exists'
       });
       return;
     }
@@ -32,6 +37,7 @@ router.post('/register', async (req, res) => {
     // Create user
     const user = await prisma.user.create({
       data: {
+        username,
         email,
         password: hashedPassword,
         firstName,
@@ -40,6 +46,7 @@ router.post('/register', async (req, res) => {
       },
       select: {
         id: true,
+        username: true,
         email: true,
         firstName: true,
         lastName: true,
@@ -76,11 +83,11 @@ router.post('/register', async (req, res) => {
 // Login user
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { username, password } = req.body;
 
     // Check if user exists
     const user = await prisma.user.findUnique({
-      where: { email }
+      where: { username }
     });
 
     if (!user) {
@@ -120,6 +127,7 @@ router.post('/login', async (req, res) => {
     // Return user data (excluding password)
     const userData = {
       id: user.id,
+      username: user.username,
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
@@ -152,6 +160,7 @@ router.get('/me', authMiddleware, async (req: AuthRequest, res) => {
       where: { id: req.user!.id },
       select: {
         id: true,
+        username: true,
         email: true,
         firstName: true,
         lastName: true,
