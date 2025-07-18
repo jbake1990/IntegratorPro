@@ -37,7 +37,7 @@ This guide will walk you through deploying your Integrator Pro application to Ve
 2. **Configure Project Settings**
    - **Framework Preset**: Other
    - **Root Directory**: `./` (leave as default)
-   - **Build Command**: `npm run build`
+   - **Build Command**: `npm run install-all && npm run build`
    - **Output Directory**: `client/build`
    - **Install Command**: `npm run install-all`
 
@@ -118,42 +118,112 @@ CLIENT_URL=https://your-app-name.vercel.app
    - Email: `admin@integratorpro.com`
    - Password: `admin123`
 
-## Troubleshooting
+## Troubleshooting Build Errors
 
-### Common Issues
+### Common Build Issues and Solutions
 
-1. **Build Failures**
-   - Check the build logs in Vercel dashboard
-   - Ensure all dependencies are properly installed
-   - Verify TypeScript compilation
+1. **TypeScript Compilation Errors**
+   - **Issue**: TypeScript errors during build
+   - **Solution**: Ensure all dependencies are properly installed
+   ```bash
+   npm run install-all
+   ```
 
-2. **Database Connection Issues**
-   - Verify your DATABASE_URL is correct
-   - Check if your database allows external connections
-   - Ensure the database exists and is accessible
+2. **Missing Dependencies**
+   - **Issue**: Module not found errors
+   - **Solution**: Check that all package.json files have correct dependencies
+   - **Verify**: Run `npm ls` in each directory to check for missing packages
 
-3. **API Routes Not Working**
-   - Check that the vercel.json configuration is correct
-   - Verify the API routes are properly configured
-   - Check function logs in Vercel dashboard
+3. **Build Command Failures**
+   - **Issue**: Build script fails
+   - **Solution**: The build command should be: `npm run install-all && npm run build`
+   - **Verify**: Test locally with `npm run build`
 
-4. **CORS Issues**
-   - The application is configured to handle CORS automatically
-   - If issues persist, check the CLIENT_URL environment variable
+4. **Output Directory Issues**
+   - **Issue**: Build artifacts not found
+   - **Solution**: Ensure output directory is set to `client/build`
+   - **Verify**: Check that `client/build` directory exists after build
 
-### Debugging
+5. **API Function Errors**
+   - **Issue**: Serverless function deployment fails
+   - **Solution**: The API is now configured as `api/server.ts`
+   - **Verify**: Check that the API function compiles correctly
 
-1. **Check Function Logs**
-   - Go to Vercel dashboard → Functions
-   - Click on any function to see logs
+### Debugging Steps
 
-2. **Check Build Logs**
+1. **Check Build Logs**
    - Go to Vercel dashboard → Deployments
-   - Click on a deployment to see build logs
+   - Click on the failed deployment
+   - Review the build logs for specific error messages
 
-3. **Database Issues**
-   - Use Prisma Studio: `npx prisma studio`
-   - Check database connection directly
+2. **Test Locally**
+   ```bash
+   # Install all dependencies
+   npm run install-all
+   
+   # Test the build process
+   npm run build
+   
+   # Test the client build
+   cd client && npm run build
+   
+   # Test the server build
+   cd ../server && npm run build
+   ```
+
+3. **Verify Dependencies**
+   ```bash
+   # Check root dependencies
+   npm ls
+   
+   # Check client dependencies
+   cd client && npm ls
+   
+   # Check server dependencies
+   cd ../server && npm ls
+   
+   # Check API dependencies
+   cd ../api && npm ls
+   ```
+
+4. **Common Fixes**
+
+   **If you get TypeScript errors:**
+   ```bash
+   # Clear node_modules and reinstall
+   rm -rf node_modules package-lock.json
+   rm -rf client/node_modules client/package-lock.json
+   rm -rf server/node_modules server/package-lock.json
+   rm -rf api/node_modules api/package-lock.json
+   npm run install-all
+   ```
+
+   **If you get module resolution errors:**
+   - Check that all import paths are correct
+   - Verify that TypeScript configuration is properly set up
+   - Ensure that all dependencies are listed in package.json files
+
+   **If the build times out:**
+   - Increase the build timeout in Vercel settings
+   - Optimize the build process by removing unnecessary dependencies
+   - Consider using Vercel's build cache
+
+### Environment-Specific Issues
+
+1. **Development vs Production**
+   - Ensure `NODE_ENV=production` is set in Vercel
+   - Check that production builds are configured correctly
+   - Verify that environment variables are properly set
+
+2. **Database Connection**
+   - Ensure `DATABASE_URL` is correctly formatted
+   - Check that the database is accessible from Vercel's servers
+   - Verify that SSL is properly configured for production
+
+3. **API Routes**
+   - The API is now served from `/api/*` routes
+   - Frontend should use relative URLs for API calls
+   - Check that CORS is properly configured
 
 ## Production Considerations
 
@@ -208,6 +278,7 @@ If you encounter issues:
 2. Review the [Prisma documentation](https://www.prisma.io/docs)
 3. Check the function logs in your Vercel dashboard
 4. Verify your environment variables are correctly set
+5. Test the build process locally before deploying
 
 ## Next Steps
 
