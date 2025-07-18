@@ -1,28 +1,13 @@
-import React, { useEffect } from 'react';
-import { Box, Typography, Grid, Card, CardContent, Alert } from '@mui/material';
-import { useAuth } from '../../hooks/useAuth';
+import React from 'react';
+import { Box, Typography, Grid, Card, CardContent } from '@mui/material';
 
 const Dashboard: React.FC = () => {
-  const { user, isAuthenticated } = useAuth();
-
-  useEffect(() => {
-    console.log('Dashboard rendered');
-    console.log('User:', user);
-    console.log('Is authenticated:', isAuthenticated);
-  }, [user, isAuthenticated]);
-
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
         Dashboard
       </Typography>
       
-      {user && (
-        <Alert severity="info" sx={{ mb: 3 }}>
-          Welcome, {user.firstName} {user.lastName} ({user.username})
-        </Alert>
-      )}
-
       <Grid container spacing={3}>
         <Grid item xs={12} md={6} lg={3}>
           <Card>

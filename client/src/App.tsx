@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Box, Typography } from '@mui/material';
 
@@ -27,13 +27,6 @@ import { useAuth } from './hooks/useAuth';
 
 function App() {
   const { isAuthenticated, user, loading } = useAuth();
-
-  useEffect(() => {
-    console.log('App component mounted');
-    console.log('Is authenticated:', isAuthenticated);
-    console.log('User:', user);
-    console.log('Loading:', loading);
-  }, [isAuthenticated, user, loading]);
 
   // Show loading state
   if (loading) {

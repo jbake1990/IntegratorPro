@@ -13,11 +13,35 @@ export const useAuth = () => {
       dispatch(loginStart());
       const response = await api.post('/auth/login', { username, password });
       console.log('Login response:', response.data);
-      dispatch(loginSuccess(response.data.data));
+      
+      // Validate response structure
+      if (!response.data || !response.data.data) {
+        throw new Error('Invalid response structure');
+      }
+      
+      const { user, token } = response.data.data;
+      
+      // Validate user object
+      if (!user || !token) {
+        throw new Error('Missing user or token in response');
+      }
+      
+      // Ensure user object has required fields
+      const validatedUser = {
+        id: user.id || '',
+        username: user.username || '',
+        email: user.email || '',
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        role: user.role || 'EMPLOYEE',
+        isActive: user.isActive !== undefined ? user.isActive : true,
+      };
+      
+      dispatch(loginSuccess({ user: validatedUser, token }));
       return response.data;
     } catch (error: any) {
       console.error('Login error:', error);
-      const errorMessage = error.response?.data?.error || 'Login failed';
+      const errorMessage = error.response?.data?.error || error.message || 'Login failed';
       dispatch(loginFailure(errorMessage));
       throw error;
     }
