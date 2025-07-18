@@ -1,17 +1,8 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import express from 'express';
 import cors from 'cors';
-import authRoutes from '../server/src/routes/auth';
-import customerRoutes from '../server/src/routes/customers';
-import dashboardRoutes from '../server/src/routes/dashboard';
-import inventoryRoutes from '../server/src/routes/inventory';
-import invoiceRoutes from '../server/src/routes/invoices';
-import purchaseOrderRoutes from '../server/src/routes/purchaseOrders';
-import receivingRoutes from '../server/src/routes/receiving';
-import userRoutes from '../server/src/routes/users';
-import vehicleRoutes from '../server/src/routes/vehicles';
-import vendorRoutes from '../server/src/routes/vendors';
-import warehouseRoutes from '../server/src/routes/warehouses';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
 const app = express();
 
@@ -19,18 +10,52 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/customers', customerRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/inventory', inventoryRoutes);
-app.use('/api/invoices', invoiceRoutes);
-app.use('/api/purchase-orders', purchaseOrderRoutes);
-app.use('/api/receiving', receivingRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/vehicles', vehicleRoutes);
-app.use('/api/vendors', vendorRoutes);
-app.use('/api/warehouses', warehouseRoutes);
+// Simple authentication routes
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    // For now, let's create a simple admin user check
+    // In production, this would connect to your database
+    if (username === 'admin' && password === 'admin123') {
+      const token = jwt.sign(
+        { userId: 'admin-user-id' },
+        process.env.JWT_SECRET || 'fallback-secret',
+        { expiresIn: '24h' }
+      );
+
+      const user = {
+        id: 'admin-user-id',
+        username: 'admin',
+        email: 'admin@integratorpro.com',
+        firstName: 'Admin',
+        lastName: 'User',
+        role: 'ADMIN',
+        isActive: true
+      };
+
+      res.json({
+        success: true,
+        data: {
+          user,
+          token
+        },
+        message: 'Login successful'
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: 'Invalid credentials'
+      });
+    }
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error'
+    });
+  }
+});
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
