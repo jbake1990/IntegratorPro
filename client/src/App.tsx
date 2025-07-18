@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { Box } from '@mui/material';
+import { Box, Alert, Typography } from '@mui/material';
 
 // Layout Components
 import Layout from './components/Layout/Layout';
@@ -26,7 +26,34 @@ import ProtectedRoute from './components/Auth/ProtectedRoute';
 import { useAuth } from './hooks/useAuth';
 
 function App() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, loading } = useAuth();
+
+  useEffect(() => {
+    console.log('App component mounted');
+    console.log('Is authenticated:', isAuthenticated);
+    console.log('User:', user);
+    console.log('Loading:', loading);
+  }, [isAuthenticated, user, loading]);
+
+  // Show loading state
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <Typography variant="h6">Loading...</Typography>
+      </Box>
+    );
+  }
+
+  // Show error if there's an issue
+  if (!isAuthenticated && localStorage.getItem('token')) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="warning">
+          Authentication state mismatch. Please try logging in again.
+        </Alert>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>

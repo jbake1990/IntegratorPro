@@ -9,6 +9,7 @@ import { Toaster } from 'react-hot-toast';
 
 import App from './App';
 import { store } from './store';
+import ErrorBoundary from './components/ErrorBoundary';
 import './index.css';
 
 // Create Material-UI theme
@@ -84,25 +85,27 @@ const root = ReactDOM.createRoot(
 
 root.render(
   <React.StrictMode>
-    <Provider store={store}>
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider theme={theme}>
-          <CssBaseline />
-          <BrowserRouter>
-            <App />
-            <Toaster
-              position="top-right"
-              toastOptions={{
-                duration: 4000,
-                style: {
-                  background: '#363636',
-                  color: '#fff',
-                },
-              }}
-            />
-          </BrowserRouter>
-        </ThemeProvider>
-      </QueryClientProvider>
-    </Provider>
+    <ErrorBoundary>
+      <Provider store={store}>
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider theme={theme}>
+            <CssBaseline />
+            <BrowserRouter>
+              <App />
+              <Toaster
+                position="top-right"
+                toastOptions={{
+                  duration: 4000,
+                  style: {
+                    background: '#363636',
+                    color: '#fff',
+                  },
+                }}
+              />
+            </BrowserRouter>
+          </ThemeProvider>
+        </QueryClientProvider>
+      </Provider>
+    </ErrorBoundary>
   </React.StrictMode>
 ); 
