@@ -7,10 +7,10 @@ export const useAuth = () => {
   const dispatch = useDispatch();
   const auth = useSelector((state: RootState) => state.auth);
 
-  const login = async (email: string, password: string) => {
+  const login = async (username: string, password: string) => {
     try {
       dispatch(loginStart());
-      const response = await api.post('/auth/login', { email, password });
+      const response = await api.post('/auth/login', { username, password });
       dispatch(loginSuccess(response.data.data));
       return response.data;
     } catch (error: any) {
