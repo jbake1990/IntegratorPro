@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { Box, Alert, Typography } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 
 // Layout Components
 import Layout from './components/Layout/Layout';
