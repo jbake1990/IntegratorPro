@@ -81,6 +81,32 @@ interface ServiceTruck {
   inventory: TruckInventory[];
 }
 
+interface KittedJob {
+  id: string;
+  customerName: string;
+  jobNumber: string;
+  status: 'Active' | 'Completed' | 'Cancelled';
+  quotes: Quote[];
+  totalValue: number;
+  createdAt: string;
+}
+
+interface Quote {
+  id: string;
+  name: string;
+  parts: JobPart[];
+  totalValue: number;
+}
+
+interface JobPart {
+  itemId: string;
+  partNumber: string;
+  name: string;
+  quantity: number;
+  cost: number;
+  manufacturer: string;
+}
+
 // KittedJob and JobAllocation interfaces will be implemented when job functionality is added
 
 const mockInventoryData: InventoryItem[] = [
@@ -213,14 +239,92 @@ const mockTrucks: ServiceTruck[] = [
   }
 ];
 
+const mockJobs: KittedJob[] = [
+  {
+    id: 'job-1',
+    customerName: 'ABC Corporation',
+    jobNumber: 'JOB-2024-001',
+    status: 'Active',
+    quotes: [
+      {
+        id: 'quote-1',
+        name: 'Main Building Audio System',
+        parts: [
+          {
+            itemId: '1',
+            partNumber: 'SPK-8IN-CEILING',
+            name: 'In-Ceiling Speaker 8"',
+            quantity: 12,
+            cost: 89.99,
+            manufacturer: 'AudioTech Pro'
+          },
+          {
+            itemId: '2',
+            partNumber: 'AMP-MULTI-ZONE-6CH',
+            name: 'Multi-Zone Amplifier',
+            quantity: 2,
+            cost: 299.99,
+            manufacturer: 'SoundMaster'
+          }
+        ],
+        totalValue: 1879.86
+      },
+      {
+        id: 'quote-2',
+        name: 'Conference Room Control',
+        parts: [
+          {
+            itemId: '4',
+            partNumber: 'CTRL-UNIVERSAL-IR',
+            name: 'Universal IR Controller',
+            quantity: 3,
+            cost: 45.99,
+            manufacturer: 'ControlTech'
+          }
+        ],
+        totalValue: 137.97
+      }
+    ],
+    totalValue: 2017.83,
+    createdAt: '2024-01-15'
+  },
+  {
+    id: 'job-2',
+    customerName: 'XYZ Industries',
+    jobNumber: 'JOB-2024-002',
+    status: 'Active',
+    quotes: [
+      {
+        id: 'quote-3',
+        name: 'Warehouse PA System',
+        parts: [
+          {
+            itemId: '1',
+            partNumber: 'SPK-8IN-CEILING',
+            name: 'In-Ceiling Speaker 8"',
+            quantity: 8,
+            cost: 89.99,
+            manufacturer: 'AudioTech Pro'
+          }
+        ],
+        totalValue: 719.92
+      }
+    ],
+    totalValue: 719.92,
+    createdAt: '2024-01-20'
+  }
+];
+
 const Inventory: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [inventoryData] = useState<InventoryItem[]>(mockInventoryData);
   const [trucks, setTrucks] = useState<ServiceTruck[]>(mockTrucks);
+  const [jobs, setJobs] = useState<KittedJob[]>(mockJobs);
   const [openDialog, setOpenDialog] = useState(false);
-  const [dialogType, setDialogType] = useState<'add' | 'edit' | 'move' | 'adjust' | 'addTruck' | 'editTruck' | 'truckSettings'>('add');
+  const [dialogType, setDialogType] = useState<'add' | 'edit' | 'move' | 'adjust' | 'addTruck' | 'editTruck' | 'truckSettings' | 'addJob' | 'jobSettings'>('add');
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [selectedTruck, setSelectedTruck] = useState<ServiceTruck | null>(null);
+  const [selectedJob, setSelectedJob] = useState<KittedJob | null>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [truckView, setTruckView] = useState<number>(0);
   const [addItemSearch, setAddItemSearch] = useState('');
@@ -236,6 +340,15 @@ const Inventory: React.FC = () => {
   // Add truck state
   const [newTruckName, setNewTruckName] = useState('');
   
+  // Job settings state
+  const [editingJobCustomerName, setEditingJobCustomerName] = useState('');
+  const [editingJobNumber, setEditingJobNumber] = useState('');
+  const [editingJobStatus, setEditingJobStatus] = useState<'Active' | 'Completed' | 'Cancelled'>('Active');
+  
+  // Add job state
+  const [newJobCustomerName, setNewJobCustomerName] = useState('');
+  const [newJobNumber, setNewJobNumber] = useState('');
+  
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('');
@@ -250,7 +363,7 @@ const Inventory: React.FC = () => {
     setTruckView(0);
   };
 
-  const handleOpenDialog = (type: 'add' | 'edit' | 'move' | 'adjust' | 'addTruck' | 'editTruck' | 'truckSettings', item?: InventoryItem | null, truck?: ServiceTruck | null) => {
+  const handleOpenDialog = (type: 'add' | 'edit' | 'move' | 'adjust' | 'addTruck' | 'editTruck' | 'truckSettings' | 'addJob' | 'jobSettings', item?: InventoryItem | null, truck?: ServiceTruck | null) => {
     setDialogType(type);
     setSelectedItem(item || null);
     setSelectedTruck(truck || null);
@@ -393,7 +506,60 @@ const Inventory: React.FC = () => {
     setDialogType('addTruck');
   };
 
+  const handleAddJob = () => {
+    if (!newJobCustomerName.trim() || !newJobNumber.trim()) return;
 
+    const newJob: KittedJob = {
+      id: `job-${Date.now()}`,
+      customerName: newJobCustomerName.trim(),
+      jobNumber: newJobNumber.trim(),
+      status: 'Active',
+      quotes: [],
+      totalValue: 0,
+      createdAt: new Date().toISOString().split('T')[0]
+    };
+
+    setJobs(prevJobs => [...prevJobs, newJob]);
+    setNewJobCustomerName('');
+    setNewJobNumber('');
+    handleCloseDialog();
+  };
+
+  const handleOpenAddJob = () => {
+    setNewJobCustomerName('');
+    setNewJobNumber('');
+    setOpenDialog(true);
+    setDialogType('addJob');
+  };
+
+  const handleJobClick = (job: KittedJob) => {
+    setSelectedJob(job);
+    setEditingJobCustomerName(job.customerName);
+    setEditingJobNumber(job.jobNumber);
+    setEditingJobStatus(job.status);
+    setOpenDialog(true);
+    setDialogType('jobSettings');
+  };
+
+  const handleSaveJobSettings = () => {
+    if (!selectedJob) return;
+
+    const updatedJob = {
+      ...selectedJob,
+      customerName: editingJobCustomerName,
+      jobNumber: editingJobNumber,
+      status: editingJobStatus
+    };
+
+    setJobs(prevJobs => 
+      prevJobs.map(job => 
+        job.id === selectedJob.id ? updatedJob : job
+      )
+    );
+
+    setSelectedJob(updatedJob);
+    handleCloseDialog();
+  };
 
   // Get unique values for filter dropdowns
   const categories = useMemo(() => Array.from(new Set(inventoryData.map(item => item.category))), [inventoryData]);
@@ -628,60 +794,92 @@ const Inventory: React.FC = () => {
   );
 
   const renderTruckList = () => (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h6">Service Trucks</Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleOpenAddTruck}
-        >
-          Add Truck
-        </Button>
-      </Box>
-      
-      <Grid container spacing={2}>
-        {trucks.map((truck) => (
-          <Grid item xs={12} md={6} key={truck.id}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                  <Box>
-                    <Typography variant="h6" gutterBottom>
-                      {truck.name}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {truck.inventory.length} items on truck
-                    </Typography>
-                  </Box>
-                  <IconButton
-                    size="small"
-                    onClick={() => handleOpenTruckSettings(truck)}
-                  >
-                    <SettingsIcon />
-                  </IconButton>
-                </Box>
-                
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography variant="body2" color="text.secondary">
-                    {truck.inventory.length} items on truck
-                  </Typography>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    onClick={() => handleTruckClick(truck)}
-                  >
-                    View Inventory
-                  </Button>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
-    </Box>
+    <Grid container spacing={3}>
+      {trucks.map((truck) => (
+        <Grid item xs={12} md={6} lg={4} key={truck.id}>
+          <Card 
+            sx={{ 
+              cursor: 'pointer',
+              '&:hover': { boxShadow: 3 }
+            }}
+            onClick={() => handleTruckClick(truck)}
+          >
+            <CardContent>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                <Typography variant="h6" component="div">
+                  {truck.name}
+                </Typography>
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenTruckSettings(truck);
+                  }}
+                >
+                  <SettingsIcon />
+                </IconButton>
+              </Box>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Items: {truck.inventory.length}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Below Build-to: {truck.inventory.filter(item => item.actualCount < item.buildToCount).length}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      ))}
+    </Grid>
   );
 
+  const renderJobList = () => (
+    <Grid container spacing={3}>
+      {jobs.map((job) => (
+        <Grid item xs={12} md={6} lg={4} key={job.id}>
+          <Card 
+            sx={{ 
+              cursor: 'pointer',
+              '&:hover': { boxShadow: 3 }
+            }}
+            onClick={() => handleJobClick(job)}
+          >
+            <CardContent>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                <Box>
+                  <Typography variant="h6" component="div">
+                    {job.customerName}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {job.jobNumber}
+                  </Typography>
+                </Box>
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleJobClick(job);
+                  }}
+                >
+                  <SettingsIcon />
+                </IconButton>
+              </Box>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Quotes: {job.quotes.length}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Total Value: ${job.totalValue.toFixed(2)}
+              </Typography>
+              <Chip 
+                label={job.status} 
+                size="small"
+                color={job.status === 'Active' ? 'primary' : job.status === 'Completed' ? 'success' : 'error'}
+              />
+            </CardContent>
+          </Card>
+        </Grid>
+      ))}
+    </Grid>
+  );
 
 
   const renderStockMovement = () => (
@@ -694,45 +892,13 @@ const Inventory: React.FC = () => {
         <Button
           variant="contained"
           startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog('addTruck')}
+          onClick={truckView === 0 ? handleOpenAddTruck : handleOpenAddJob}
         >
-          Add Truck
+          {truckView === 0 ? 'Add Truck' : 'Add Job'}
         </Button>
       </Box>
 
-      {truckView === 0 ? renderTruckList() : (
-        <Box>
-          <Typography variant="h6" gutterBottom>
-            Kitted Jobs
-          </Typography>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Create New Kitted Job
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Define a new kitted job for customer-specific installations.
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Manage Kitted Jobs
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    View and manage existing kitted jobs.
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-        </Box>
-      )}
+      {truckView === 0 ? renderTruckList() : renderJobList()}
     </Box>
   );
 
@@ -1008,6 +1174,124 @@ const Inventory: React.FC = () => {
     );
   };
 
+  const renderAddJobDialog = () => (
+    <Dialog open={openDialog && dialogType === 'addJob'} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+      <DialogTitle>Add New Kitted Job</DialogTitle>
+      <DialogContent>
+        <TextField
+          fullWidth
+          label="Customer Name"
+          value={newJobCustomerName}
+          margin="normal"
+          onChange={(e) => setNewJobCustomerName(e.target.value)}
+          placeholder="Enter customer name"
+        />
+        <TextField
+          fullWidth
+          label="Job Number"
+          value={newJobNumber}
+          margin="normal"
+          onChange={(e) => setNewJobNumber(e.target.value)}
+          placeholder="Enter job number"
+        />
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleCloseDialog}>Cancel</Button>
+        <Button onClick={handleAddJob} variant="contained">Add Job</Button>
+      </DialogActions>
+    </Dialog>
+  );
+
+  const renderJobSettingsDialog = () => {
+    if (!selectedJob) return null;
+
+    return (
+      <Dialog open={openDialog && dialogType === 'jobSettings'} onClose={handleCloseDialog} maxWidth="md" fullWidth>
+        <DialogTitle>
+          Job Settings - {selectedJob.customerName}
+        </DialogTitle>
+        <DialogContent>
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
+              <Typography variant="h6" gutterBottom>
+                Job Information
+              </Typography>
+              <TextField
+                fullWidth
+                label="Customer Name"
+                value={editingJobCustomerName}
+                margin="normal"
+                onChange={(e) => setEditingJobCustomerName(e.target.value)}
+              />
+              <TextField
+                fullWidth
+                label="Job Number"
+                value={editingJobNumber}
+                margin="normal"
+                onChange={(e) => setEditingJobNumber(e.target.value)}
+              />
+              <FormControl fullWidth margin="normal">
+                <InputLabel>Status</InputLabel>
+                <Select
+                  value={editingJobStatus}
+                  onChange={(e) => setEditingJobStatus(e.target.value as 'Active' | 'Completed' | 'Cancelled')}
+                  label="Status"
+                >
+                  <MenuItem value="Active">Active</MenuItem>
+                  <MenuItem value="Completed">Completed</MenuItem>
+                  <MenuItem value="Cancelled">Cancelled</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="h6" gutterBottom>
+                Job Summary
+              </Typography>
+              <Box sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}>
+                <Typography variant="body2" gutterBottom>
+                  Total Quotes: {selectedJob.quotes.length}
+                </Typography>
+                <Typography variant="body2" gutterBottom>
+                  Total Value: ${selectedJob.totalValue.toFixed(2)}
+                </Typography>
+                <Typography variant="body2" gutterBottom>
+                  Created: {selectedJob.createdAt}
+                </Typography>
+                <Typography variant="body2">
+                  Status: {selectedJob.status}
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12}>
+              <Typography variant="h6" gutterBottom>
+                Quotes & Parts
+              </Typography>
+              {selectedJob.quotes.map((quote) => (
+                <Card key={quote.id} sx={{ mb: 2 }}>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                      {quote.name}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Value: ${quote.totalValue.toFixed(2)}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Parts: {quote.parts.length}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              ))}
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog}>Cancel</Button>
+          <Button onClick={handleSaveJobSettings} variant="contained">Save Changes</Button>
+        </DialogActions>
+      </Dialog>
+    );
+  };
+
   return (
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -1100,6 +1384,8 @@ const Inventory: React.FC = () => {
       {renderTruckSettingsDialog()}
       {renderAddTruckDialog()}
       {renderEditTruckDialog()}
+      {renderAddJobDialog()}
+      {renderJobSettingsDialog()}
     </Box>
   );
 };
