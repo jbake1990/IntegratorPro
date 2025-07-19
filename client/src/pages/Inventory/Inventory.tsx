@@ -234,6 +234,9 @@ const Inventory: React.FC = () => {
   const [editingTruckName, setEditingTruckName] = useState('');
   const [editingBuildToCounts, setEditingBuildToCounts] = useState<{[key: string]: number}>({});
   
+  // Add truck state
+  const [newTruckName, setNewTruckName] = useState('');
+  
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('');
@@ -369,6 +372,29 @@ const Inventory: React.FC = () => {
       ...prev,
       [itemId]: newValue
     }));
+  };
+
+  const handleAddTruck = () => {
+    if (!newTruckName.trim()) return;
+
+    const newTruck: ServiceTruck = {
+      id: `truck-${Date.now()}`, // Generate unique ID
+      name: newTruckName.trim(),
+      inventory: []
+    };
+
+    // Add new truck to trucks array
+    setTrucks(prevTrucks => [...prevTrucks, newTruck]);
+
+    // Reset form
+    setNewTruckName('');
+    handleCloseDialog();
+  };
+
+  const handleOpenAddTruck = () => {
+    setNewTruckName('');
+    setOpenDialog(true);
+    setDialogType('addTruck');
   };
 
   const handleMoveToTruck = (truck: ServiceTruck, item: TruckInventory) => {
@@ -679,7 +705,7 @@ const Inventory: React.FC = () => {
         <Button
           variant="contained"
           startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog('addTruck')}
+          onClick={handleOpenAddTruck}
         >
           Add Truck
         </Button>
@@ -1059,13 +1085,15 @@ const Inventory: React.FC = () => {
               fullWidth
               label="Truck Name"
               placeholder="e.g., Service Truck 3"
+              value={newTruckName}
+              onChange={(e) => setNewTruckName(e.target.value)}
             />
           </Grid>
         </Grid>
       </DialogContent>
       <DialogActions>
         <Button onClick={handleCloseDialog}>Cancel</Button>
-        <Button variant="contained" onClick={handleCloseDialog}>
+        <Button variant="contained" onClick={handleAddTruck}>
           Add Truck
         </Button>
       </DialogActions>
