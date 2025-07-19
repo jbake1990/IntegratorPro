@@ -20,6 +20,7 @@ import {
   People as CustomersIcon,
   Inventory as InventoryIcon,
   Analytics as SalesAnalysisIcon,
+  Receipt as BillingIcon,
   Settings as SettingsIcon,
   Menu as MenuIcon,
   Logout as LogoutIcon
@@ -34,6 +35,7 @@ const menuItems = [
   { text: 'Customers', icon: <CustomersIcon />, path: '/customers' },
   { text: 'Inventory', icon: <InventoryIcon />, path: '/inventory' },
   { text: 'Sales Analysis', icon: <SalesAnalysisIcon />, path: '/sales-analysis' },
+  { text: 'Billing', icon: <BillingIcon />, path: '/billing' },
   { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
 ];
 

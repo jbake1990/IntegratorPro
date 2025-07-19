@@ -84,6 +84,27 @@ interface ServiceTruck {
   inventory: TruckInventory[];
 }
 
+interface KittedJob {
+  id: string;
+  jobNumber: string;
+  customerName: string;
+  description: string;
+  status: 'Active' | 'Completed' | 'Cancelled';
+  allocatedItems: JobAllocation[];
+  totalValue: number;
+  createdAt: string;
+}
+
+interface JobAllocation {
+  itemId: string;
+  partNumber: string;
+  name: string;
+  allocatedQuantity: number;
+  warehouseStock: number;
+  manufacturer: string;
+  cost: number;
+}
+
 const mockInventoryData: InventoryItem[] = [
   {
     id: '1',
@@ -851,7 +872,53 @@ const Inventory: React.FC = () => {
 
   const renderStockMovement = () => (
     <Box>
-      {truckView === 'list' ? renderTruckList() : renderTruckInventory()}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Tabs value={truckView} onChange={(event, newValue) => setTruckView(newValue)} sx={{ mb: 3 }}>
+          <Tab label="Service Trucks" />
+          <Tab label="Kitted Jobs" />
+        </Tabs>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => handleOpenDialog('addTruck')}
+        >
+          Add Truck
+        </Button>
+      </Box>
+
+      {truckView === 'list' ? renderTruckList() : (
+        <Box>
+          <Typography variant="h6" gutterBottom>
+            Kitted Jobs
+          </Typography>
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    Create New Kitted Job
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Define a new kitted job for customer-specific installations.
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    Manage Kitted Jobs
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    View and manage existing kitted jobs.
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        </Box>
+      )}
     </Box>
   );
 

@@ -20,6 +20,7 @@ import Users from './pages/Users/Users';
 import PointOfSale from './pages/PointOfSale/PointOfSale';
 import SalesAnalysis from './pages/SalesAnalysis/SalesAnalysis';
 import Settings from './pages/Settings/Settings';
+import Billing from './pages/Billing/Billing';
 
 // Protected Route Component
 import ProtectedRoute from './components/Auth/ProtectedRoute';
@@ -66,6 +67,7 @@ function App() {
           <Route path="pos" element={<PointOfSale />} />
           <Route path="sales-analysis" element={<SalesAnalysis />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="billing" element={<Billing />} />
         </Route>
 
         {/* Catch all route */}
