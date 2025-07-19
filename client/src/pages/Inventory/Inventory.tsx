@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -618,12 +618,21 @@ const Inventory: React.FC = () => {
     const oldQuantity = part?.quantity || 0;
     const quantityDifference = newQuantity - oldQuantity;
 
-    // Update inventory data to reflect the change in allocated stock
+    // Calculate total allocated stock for this part across all jobs
+    const totalAllocatedForPart = jobs.reduce((total, job) => {
+      const jobAllocated = job.quotes.reduce((jobTotal, quote) => {
+        const partInQuote = quote.parts.find(p => p.partNumber === part?.partNumber);
+        return jobTotal + (partInQuote?.quantity || 0);
+      }, 0);
+      return total + jobAllocated;
+    }, 0);
+
+    // Update inventory data to reflect the total allocated stock
     const updatedInventoryData = inventoryData.map(inv => {
       if (inv.partNumber === part?.partNumber) {
         return {
           ...inv,
-          allocatedStock: inv.allocatedStock + quantityDifference,
+          allocatedStock: totalAllocatedForPart,
           warehouseStock: inv.warehouseStock - quantityDifference
         };
       }
@@ -685,12 +694,21 @@ const Inventory: React.FC = () => {
     const part = quote?.parts.find(p => p.itemId === partId);
     const quantityToRemove = part?.quantity || 0;
 
-    // Update inventory data to reflect the removal from allocated stock
+    // Calculate total allocated stock for this part across all jobs (excluding the part being removed)
+    const totalAllocatedForPart = jobs.reduce((total, job) => {
+      const jobAllocated = job.quotes.reduce((jobTotal, quote) => {
+        const partInQuote = quote.parts.find(p => p.partNumber === part?.partNumber);
+        return jobTotal + (partInQuote?.quantity || 0);
+      }, 0);
+      return total + jobAllocated;
+    }, 0) - quantityToRemove; // Subtract the quantity being removed
+
+    // Update inventory data to reflect the total allocated stock
     const updatedInventoryData = inventoryData.map(inv => {
       if (inv.partNumber === part?.partNumber) {
         return {
           ...inv,
-          allocatedStock: inv.allocatedStock - quantityToRemove,
+          allocatedStock: totalAllocatedForPart,
           warehouseStock: inv.warehouseStock + quantityToRemove
         };
       }
@@ -742,6 +760,31 @@ const Inventory: React.FC = () => {
     const inventoryItem = inventoryData.find(item => item.partNumber === partNumber);
     return inventoryItem ? inventoryItem.warehouseStock : 0;
   };
+
+  const calculateAndUpdateAllocatedStock = () => {
+    const updatedInventoryData = inventoryData.map(inv => {
+      // Calculate total allocated stock for this part across all jobs
+      const totalAllocated = jobs.reduce((total, job) => {
+        const jobAllocated = job.quotes.reduce((jobTotal, quote) => {
+          const partInQuote = quote.parts.find(p => p.partNumber === inv.partNumber);
+          return jobTotal + (partInQuote?.quantity || 0);
+        }, 0);
+        return total + jobAllocated;
+      }, 0);
+
+      return {
+        ...inv,
+        allocatedStock: totalAllocated
+      };
+    });
+
+    setInventoryData(updatedInventoryData);
+  };
+
+  // Initialize allocated stock when component mounts
+  useEffect(() => {
+    calculateAndUpdateAllocatedStock();
+  }, []);
 
   const handleSendToBilling = (quote: Quote) => {
     // In a real app, this would create an invoice from the quote
