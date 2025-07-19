@@ -217,7 +217,7 @@ const mockTrucks: ServiceTruck[] = [
 const Inventory: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [inventoryData] = useState<InventoryItem[]>(mockInventoryData);
-  const [trucks] = useState<ServiceTruck[]>(mockTrucks);
+  const [trucks, setTrucks] = useState<ServiceTruck[]>(mockTrucks);
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogType, setDialogType] = useState<'add' | 'edit' | 'move' | 'adjust' | 'addTruck' | 'editTruck' | 'truckSettings'>('add');
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
@@ -229,6 +229,10 @@ const Inventory: React.FC = () => {
   const [showAddItemResults, setShowAddItemResults] = useState(false);
   const [selectedAddItem, setSelectedAddItem] = useState<InventoryItem | null>(null);
   const [addItemBuildTo, setAddItemBuildTo] = useState<number>(1);
+  
+  // Truck settings state
+  const [editingTruckName, setEditingTruckName] = useState('');
+  const [editingBuildToCounts, setEditingBuildToCounts] = useState<{[key: string]: number}>({});
   
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -318,6 +322,53 @@ const Inventory: React.FC = () => {
     setSelectedAddItem(null);
     setAddItemSearch('');
     setAddItemBuildTo(1);
+  };
+
+  const handleOpenTruckSettings = (truck: ServiceTruck) => {
+    setSelectedTruck(truck);
+    setEditingTruckName(truck.name);
+    const buildToCounts: {[key: string]: number} = {};
+    truck.inventory.forEach(item => {
+      buildToCounts[item.itemId] = item.buildToCount;
+    });
+    setEditingBuildToCounts(buildToCounts);
+    setOpenDialog(true);
+    setDialogType('truckSettings');
+  };
+
+  const handleSaveTruckSettings = () => {
+    if (!selectedTruck) return;
+
+    // Update truck name
+    const updatedTruck = {
+      ...selectedTruck,
+      name: editingTruckName,
+      inventory: selectedTruck.inventory.map(item => ({
+        ...item,
+        buildToCount: editingBuildToCounts[item.itemId] || item.buildToCount
+      }))
+    };
+
+    // Update trucks array
+    setTrucks(prevTrucks => 
+      prevTrucks.map(truck => 
+        truck.id === selectedTruck.id ? updatedTruck : truck
+      )
+    );
+
+    // Update selected truck if it's currently selected
+    if (selectedTruck.id === selectedTruck?.id) {
+      setSelectedTruck(updatedTruck);
+    }
+
+    handleCloseDialog();
+  };
+
+  const handleBuildToChange = (itemId: string, newValue: number) => {
+    setEditingBuildToCounts(prev => ({
+      ...prev,
+      [itemId]: newValue
+    }));
   };
 
   // Get unique values for filter dropdowns
@@ -581,7 +632,7 @@ const Inventory: React.FC = () => {
                   </Box>
                   <IconButton
                     size="small"
-                    onClick={() => handleOpenDialog('editTruck', null, truck)}
+                    onClick={() => handleOpenTruckSettings(truck)}
                   >
                     <SettingsIcon />
                   </IconButton>
@@ -629,7 +680,7 @@ const Inventory: React.FC = () => {
           <Button
             variant="contained"
             startIcon={<SettingsIcon />}
-            onClick={() => handleOpenDialog('truckSettings', null, selectedTruck)}
+            onClick={() => handleOpenTruckSettings(selectedTruck)}
           >
             Truck Settings
           </Button>
@@ -792,8 +843,9 @@ const Inventory: React.FC = () => {
               <TextField
                 fullWidth
                 label="Truck Name"
-                defaultValue={selectedTruck.name}
+                value={editingTruckName}
                 margin="normal"
+                onChange={(e) => setEditingTruckName(e.target.value)}
               />
             </Grid>
             <Grid item xs={12} md={6}>
@@ -846,9 +898,10 @@ const Inventory: React.FC = () => {
                           <TextField
                             type="number"
                             size="small"
-                            defaultValue={item.buildToCount}
+                            value={editingBuildToCounts[item.itemId] || item.buildToCount}
                             sx={{ width: 80 }}
                             inputProps={{ min: 0 }}
+                            onChange={(e) => handleBuildToChange(item.itemId, Number(e.target.value))}
                           />
                         </TableCell>
                         <TableCell align="center">
@@ -917,7 +970,7 @@ const Inventory: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button variant="contained" onClick={handleCloseDialog}>
+          <Button variant="contained" onClick={handleSaveTruckSettings}>
             Save Settings
           </Button>
         </DialogActions>
