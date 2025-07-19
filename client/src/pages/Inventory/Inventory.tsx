@@ -318,7 +318,7 @@ const mockJobs: KittedJob[] = [
 
 const Inventory: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
-  const [inventoryData] = useState<InventoryItem[]>(mockInventoryData);
+  const [inventoryData, setInventoryData] = useState<InventoryItem[]>(mockInventoryData);
   const [trucks, setTrucks] = useState<ServiceTruck[]>(mockTrucks);
   const [jobs, setJobs] = useState<KittedJob[]>(mockJobs);
   const [openDialog, setOpenDialog] = useState(false);
@@ -612,21 +612,40 @@ const Inventory: React.FC = () => {
   const handlePartQuantityChange = (quoteId: string, partId: string, newQuantity: number) => {
     if (!selectedJob || newQuantity < 0) return;
 
+    // Find the part to get the old quantity
+    const quote = selectedJob.quotes.find(q => q.id === quoteId);
+    const part = quote?.parts.find(p => p.itemId === partId);
+    const oldQuantity = part?.quantity || 0;
+    const quantityDifference = newQuantity - oldQuantity;
+
+    // Update inventory data to reflect the change in allocated stock
+    const updatedInventoryData = inventoryData.map(inv => {
+      if (inv.partNumber === part?.partNumber) {
+        return {
+          ...inv,
+          allocatedStock: inv.allocatedStock + quantityDifference,
+          warehouseStock: inv.warehouseStock - quantityDifference
+        };
+      }
+      return inv;
+    });
+
+    // Update the job with new quantities
     const updatedJob = {
       ...selectedJob,
       quotes: selectedJob.quotes.map(quote => {
         if (quote.id === quoteId) {
           return {
             ...quote,
-                         parts: quote.parts.map(part => {
-               if (part.itemId === partId) {
-                 return {
-                   ...part,
-                   quantity: newQuantity
-                 };
-               }
-               return part;
-             })
+            parts: quote.parts.map(part => {
+              if (part.itemId === partId) {
+                return {
+                  ...part,
+                  quantity: newQuantity
+                };
+              }
+              return part;
+            })
           };
         }
         return quote;
@@ -645,11 +664,15 @@ const Inventory: React.FC = () => {
     // Recalculate total job value
     updatedJob.totalValue = updatedJob.quotes.reduce((sum, quote) => sum + quote.totalValue, 0);
 
+    // Update jobs state
     setJobs(prevJobs => 
       prevJobs.map(job => 
         job.id === selectedJob.id ? updatedJob : job
       )
     );
+
+    // Update inventory data state
+    setInventoryData(updatedInventoryData);
 
     setSelectedJob(updatedJob);
   };
@@ -657,6 +680,24 @@ const Inventory: React.FC = () => {
   const handleRemovePart = (quoteId: string, partId: string) => {
     if (!selectedJob) return;
 
+    // Find the part to get the quantity being removed
+    const quote = selectedJob.quotes.find(q => q.id === quoteId);
+    const part = quote?.parts.find(p => p.itemId === partId);
+    const quantityToRemove = part?.quantity || 0;
+
+    // Update inventory data to reflect the removal from allocated stock
+    const updatedInventoryData = inventoryData.map(inv => {
+      if (inv.partNumber === part?.partNumber) {
+        return {
+          ...inv,
+          allocatedStock: inv.allocatedStock - quantityToRemove,
+          warehouseStock: inv.warehouseStock + quantityToRemove
+        };
+      }
+      return inv;
+    });
+
+    // Update the job by removing the part
     const updatedJob = {
       ...selectedJob,
       quotes: selectedJob.quotes.map(quote => {
@@ -682,11 +723,15 @@ const Inventory: React.FC = () => {
     // Recalculate total job value
     updatedJob.totalValue = updatedJob.quotes.reduce((sum, quote) => sum + quote.totalValue, 0);
 
+    // Update jobs state
     setJobs(prevJobs => 
       prevJobs.map(job => 
         job.id === selectedJob.id ? updatedJob : job
       )
     );
+
+    // Update inventory data state
+    setInventoryData(updatedInventoryData);
 
     setSelectedJob(updatedJob);
   };
@@ -1488,7 +1533,12 @@ const Inventory: React.FC = () => {
                                     inputProps={{ min: 0, max: warehouseStock }}
                                     onChange={(e) => {
                                       const newQuantity = Number(e.target.value);
-                                      if (newQuantity >= 0 && newQuantity <= warehouseStock) {
+                                      const warehouseStock = getWarehouseStockForPart(part.partNumber);
+                                      const currentAllocated = inventoryData.find(inv => inv.partNumber === part.partNumber)?.allocatedStock || 0;
+                                      const currentPartQuantity = part.quantity;
+                                      const availableStock = warehouseStock + currentAllocated - currentPartQuantity;
+                                      
+                                      if (newQuantity >= 0 && newQuantity <= availableStock) {
                                         handlePartQuantityChange(quote.id, part.itemId, newQuantity);
                                       }
                                     }}
