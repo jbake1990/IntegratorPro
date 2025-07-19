@@ -349,9 +349,7 @@ const Inventory: React.FC = () => {
   const [newJobCustomerName, setNewJobCustomerName] = useState('');
   
   // Quote management state
-  const [editingQuotes, setEditingQuotes] = useState<Quote[]>([]);
   const [newQuoteName, setNewQuoteName] = useState('');
-  const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
   const [showAddQuoteDialog, setShowAddQuoteDialog] = useState(false);
   
   // Search and filter states
@@ -528,7 +526,6 @@ const Inventory: React.FC = () => {
     setSelectedJob(newJob); // Select the new job
     setEditingJobCustomerName(newJob.customerName);
     setEditingJobStatus(newJob.status);
-    setEditingQuotes([]);
     setOpenDialog(true);
     setDialogType('jobSettings');
     setNewJobCustomerName('');
@@ -1331,8 +1328,8 @@ const Inventory: React.FC = () => {
                           variant="outlined"
                           startIcon={<EditIcon />}
                           onClick={() => {
-                            setSelectedQuote(quote);
                             // TODO: Open quote edit dialog
+                            console.log('Edit quote:', quote.id);
                           }}
                         >
                           Edit
