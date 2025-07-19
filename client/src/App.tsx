@@ -18,6 +18,8 @@ import Vehicles from './pages/Vehicles/Vehicles';
 import Warehouses from './pages/Warehouses/Warehouses';
 import Users from './pages/Users/Users';
 import PointOfSale from './pages/PointOfSale/PointOfSale';
+import SalesAnalysis from './pages/SalesAnalysis/SalesAnalysis';
+import Settings from './pages/Settings/Settings';
 
 // Protected Route Component
 import ProtectedRoute from './components/Auth/ProtectedRoute';
@@ -62,6 +64,8 @@ function App() {
           <Route path="warehouses" element={<Warehouses />} />
           <Route path="users" element={<Users />} />
           <Route path="pos" element={<PointOfSale />} />
+          <Route path="sales-analysis" element={<SalesAnalysis />} />
+          <Route path="settings" element={<Settings />} />
         </Route>
 
         {/* Catch all route */}
