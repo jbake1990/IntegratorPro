@@ -8,7 +8,6 @@ import {
   CardContent,
   Grid,
   Button,
-  TextField,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -24,9 +23,6 @@ import {
   IconButton,
   Menu,
   MenuItem,
-  FormControl,
-  InputLabel,
-  Select,
   Alert
 } from '@mui/material';
 import {
@@ -106,7 +102,7 @@ const mockInventoryData: InventoryItem[] = [
 
 const Inventory: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
-  const [inventoryData, setInventoryData] = useState<InventoryItem[]>(mockInventoryData);
+  const [inventoryData] = useState<InventoryItem[]>(mockInventoryData);
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogType, setDialogType] = useState<'add' | 'edit' | 'move' | 'adjust'>('add');
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
