@@ -84,26 +84,7 @@ interface ServiceTruck {
   inventory: TruckInventory[];
 }
 
-interface KittedJob {
-  id: string;
-  jobNumber: string;
-  customerName: string;
-  description: string;
-  status: 'Active' | 'Completed' | 'Cancelled';
-  allocatedItems: JobAllocation[];
-  totalValue: number;
-  createdAt: string;
-}
-
-interface JobAllocation {
-  itemId: string;
-  partNumber: string;
-  name: string;
-  allocatedQuantity: number;
-  warehouseStock: number;
-  manufacturer: string;
-  cost: number;
-}
+// KittedJob and JobAllocation interfaces will be implemented when job functionality is added
 
 const mockInventoryData: InventoryItem[] = [
   {
@@ -774,101 +755,7 @@ const Inventory: React.FC = () => {
     </Box>
   );
 
-  const renderTruckInventory = () => {
-    if (!selectedTruck) return null;
 
-    return (
-      <Box>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Box>
-            <Button
-              variant="outlined"
-              startIcon={<CarIcon />}
-              onClick={handleBackToList}
-              sx={{ mb: 1 }}
-            >
-              Back to Trucks
-            </Button>
-            <Typography variant="h6">
-              {selectedTruck.name} - Inventory
-            </Typography>
-          </Box>
-          <Button
-            variant="contained"
-            startIcon={<SettingsIcon />}
-            onClick={() => handleOpenTruckSettings(selectedTruck)}
-          >
-            Truck Settings
-          </Button>
-        </Box>
-
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Part Number</TableCell>
-                <TableCell>Name</TableCell>
-                <TableCell>Manufacturer</TableCell>
-                <TableCell align="right">Actual Count</TableCell>
-                <TableCell align="right">Build To</TableCell>
-                <TableCell align="right">Warehouse Available</TableCell>
-                <TableCell align="center">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {selectedTruck.inventory.map((item) => {
-                const warehouseItem = inventoryData.find(inv => inv.partNumber === item.partNumber);
-                return (
-                  <TableRow key={item.itemId}>
-                    <TableCell>{item.partNumber}</TableCell>
-                    <TableCell>{item.name}</TableCell>
-                    <TableCell>{item.manufacturer}</TableCell>
-                    <TableCell align="right">
-                      <Typography variant="body2" fontWeight="medium">
-                        {item.actualCount}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="right">
-                      <Typography variant="body2" color="text.secondary">
-                        {item.buildToCount}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="right">
-                      <Typography variant="body2" color="text.secondary">
-                        {warehouseItem?.warehouseStock || 0}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="center">
-                      <Box sx={{ display: 'flex', gap: 1 }}>
-                        <IconButton
-                          size="small"
-                          color="primary"
-                          title="Move from Warehouse to Truck"
-                          disabled={!warehouseItem || warehouseItem.warehouseStock === 0}
-                          onClick={() => handleMoveToTruck(selectedTruck!, item)}
-                        >
-                          <MoveToTruckIcon />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          color="secondary"
-                          title="Move from Truck to Warehouse"
-                          disabled={item.actualCount === 0}
-                          onClick={() => handleMoveToWarehouse(selectedTruck!, item)}
-                        >
-                          <MoveToWarehouseIcon />
-                        </IconButton>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Box>
-    );
-  };
 
   const renderStockMovement = () => (
     <Box>
