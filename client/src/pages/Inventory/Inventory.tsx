@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -23,7 +23,15 @@ import {
   IconButton,
   Menu,
   MenuItem,
-  Alert
+  Alert,
+  TextField,
+  InputAdornment,
+  FormControl,
+  InputLabel,
+  Select,
+  OutlinedInput,
+  Checkbox,
+  ListItemText
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -33,14 +41,22 @@ import {
   LocalShipping as TruckIcon,
   Warehouse as WarehouseIcon,
   Person as CustomerIcon,
-  Assignment as JobIcon
+  Assignment as JobIcon,
+  Search as SearchIcon,
+  FilterList as FilterIcon,
+  Clear as ClearIcon
 } from '@mui/icons-material';
 
 interface InventoryItem {
   id: string;
   sku: string;
+  partNumber: string;
   name: string;
+  description: string;
+  manufacturer: string;
+  tags: string[];
   category: string;
+  vendor: string;
   warehouseStock: number;
   truckStock: number;
   allocatedStock: number;
@@ -48,7 +64,7 @@ interface InventoryItem {
   minStock: number;
   maxStock: number;
   cost: number;
-  price: number;
+  sellingPrice: number;
   status: 'In Stock' | 'Low Stock' | 'Out of Stock' | 'Overstocked';
 }
 
@@ -56,8 +72,13 @@ const mockInventoryData: InventoryItem[] = [
   {
     id: '1',
     sku: 'SPK-001',
+    partNumber: 'SPK-8IN-CEILING',
     name: 'In-Ceiling Speaker 8"',
+    description: 'High-quality 8-inch in-ceiling speaker with 2-way design, perfect for home theater and commercial audio installations',
+    manufacturer: 'AudioTech Pro',
+    tags: ['speaker', 'ceiling', 'audio', 'home theater'],
     category: 'Audio Equipment',
+    vendor: 'AudioTech Pro',
     warehouseStock: 45,
     truckStock: 12,
     allocatedStock: 8,
@@ -65,14 +86,19 @@ const mockInventoryData: InventoryItem[] = [
     minStock: 10,
     maxStock: 100,
     cost: 89.99,
-    price: 149.99,
+    sellingPrice: 149.99,
     status: 'In Stock'
   },
   {
     id: '2',
     sku: 'AMP-001',
+    partNumber: 'AMP-MULTI-ZONE-6CH',
     name: 'Multi-Zone Amplifier',
+    description: '6-channel multi-zone amplifier with 100W per channel, ideal for distributed audio systems',
+    manufacturer: 'SoundMaster',
+    tags: ['amplifier', 'multi-zone', 'commercial', 'distributed audio'],
     category: 'Audio Equipment',
+    vendor: 'SoundMaster Electronics',
     warehouseStock: 8,
     truckStock: 3,
     allocatedStock: 2,
@@ -80,14 +106,19 @@ const mockInventoryData: InventoryItem[] = [
     minStock: 5,
     maxStock: 25,
     cost: 299.99,
-    price: 499.99,
+    sellingPrice: 499.99,
     status: 'Low Stock'
   },
   {
     id: '3',
     sku: 'CBL-001',
+    partNumber: 'CBL-HDMI-50FT',
     name: 'HDMI Cable 50ft',
+    description: 'Premium 50-foot HDMI cable with gold-plated connectors, supports 4K resolution',
+    manufacturer: 'CablePro',
+    tags: ['cable', 'hdmi', '4k', 'video'],
     category: 'Cables',
+    vendor: 'CablePro Solutions',
     warehouseStock: 0,
     truckStock: 0,
     allocatedStock: 5,
@@ -95,8 +126,28 @@ const mockInventoryData: InventoryItem[] = [
     minStock: 20,
     maxStock: 100,
     cost: 19.99,
-    price: 39.99,
+    sellingPrice: 39.99,
     status: 'Out of Stock'
+  },
+  {
+    id: '4',
+    sku: 'CTRL-001',
+    partNumber: 'CTRL-UNIVERSAL-IR',
+    name: 'Universal IR Controller',
+    description: 'Programmable universal infrared remote control with learning capability',
+    manufacturer: 'ControlTech',
+    tags: ['remote', 'ir', 'universal', 'control'],
+    category: 'Control Systems',
+    vendor: 'ControlTech Industries',
+    warehouseStock: 25,
+    truckStock: 8,
+    allocatedStock: 3,
+    totalStock: 36,
+    minStock: 15,
+    maxStock: 50,
+    cost: 45.99,
+    sellingPrice: 79.99,
+    status: 'In Stock'
   }
 ];
 
@@ -107,6 +158,15 @@ const Inventory: React.FC = () => {
   const [dialogType, setDialogType] = useState<'add' | 'edit' | 'move' | 'adjust'>('add');
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  
+  // Search and filter states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('');
+  const [manufacturerFilter, setManufacturerFilter] = useState<string>('');
+  const [vendorFilter, setVendorFilter] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [tagFilter, setTagFilter] = useState<string[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
@@ -131,6 +191,15 @@ const Inventory: React.FC = () => {
     setAnchorEl(null);
   };
 
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setCategoryFilter('');
+    setManufacturerFilter('');
+    setVendorFilter('');
+    setStatusFilter('');
+    setTagFilter([]);
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'In Stock':
@@ -146,53 +215,250 @@ const Inventory: React.FC = () => {
     }
   };
 
+  // Get unique values for filter dropdowns
+  const categories = useMemo(() => Array.from(new Set(inventoryData.map(item => item.category))), [inventoryData]);
+  const manufacturers = useMemo(() => Array.from(new Set(inventoryData.map(item => item.manufacturer))), [inventoryData]);
+  const vendors = useMemo(() => Array.from(new Set(inventoryData.map(item => item.vendor))), [inventoryData]);
+  const allTags = useMemo(() => {
+    const tags = inventoryData.flatMap(item => item.tags);
+    return Array.from(new Set(tags));
+  }, [inventoryData]);
+
+  // Filter inventory data
+  const filteredInventory = useMemo(() => {
+    return inventoryData.filter(item => {
+      const matchesSearch = searchTerm === '' || 
+        item.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.partNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.manufacturer.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.vendor.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+
+      const matchesCategory = categoryFilter === '' || item.category === categoryFilter;
+      const matchesManufacturer = manufacturerFilter === '' || item.manufacturer === manufacturerFilter;
+      const matchesVendor = vendorFilter === '' || item.vendor === vendorFilter;
+      const matchesStatus = statusFilter === '' || item.status === statusFilter;
+      const matchesTags = tagFilter.length === 0 || 
+        tagFilter.some(tag => item.tags.includes(tag));
+
+      return matchesSearch && matchesCategory && matchesManufacturer && matchesVendor && matchesStatus && matchesTags;
+    });
+  }, [inventoryData, searchTerm, categoryFilter, manufacturerFilter, vendorFilter, statusFilter, tagFilter]);
+
+  const renderSearchAndFilters = () => (
+    <Box sx={{ mb: 3 }}>
+      <Grid container spacing={2} alignItems="center">
+        <Grid item xs={12} md={6}>
+          <TextField
+            fullWidth
+            placeholder="Search SKU, part number, name, description, manufacturer, vendor, or tags..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+          />
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant={showFilters ? "contained" : "outlined"}
+              startIcon={<FilterIcon />}
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              Filters
+            </Button>
+            {(searchTerm || categoryFilter || manufacturerFilter || vendorFilter || statusFilter || tagFilter.length > 0) && (
+              <Button
+                variant="outlined"
+                startIcon={<ClearIcon />}
+                onClick={handleClearFilters}
+              >
+                Clear
+              </Button>
+            )}
+          </Box>
+        </Grid>
+      </Grid>
+
+      {showFilters && (
+        <Box sx={{ mt: 2, p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6} md={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Category</InputLabel>
+                <Select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  label="Category"
+                >
+                  <MenuItem value="">All Categories</MenuItem>
+                  {categories.map(category => (
+                    <MenuItem key={category} value={category}>{category}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Manufacturer</InputLabel>
+                <Select
+                  value={manufacturerFilter}
+                  onChange={(e) => setManufacturerFilter(e.target.value)}
+                  label="Manufacturer"
+                >
+                  <MenuItem value="">All Manufacturers</MenuItem>
+                  {manufacturers.map(manufacturer => (
+                    <MenuItem key={manufacturer} value={manufacturer}>{manufacturer}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Vendor</InputLabel>
+                <Select
+                  value={vendorFilter}
+                  onChange={(e) => setVendorFilter(e.target.value)}
+                  label="Vendor"
+                >
+                  <MenuItem value="">All Vendors</MenuItem>
+                  {vendors.map(vendor => (
+                    <MenuItem key={vendor} value={vendor}>{vendor}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Status</InputLabel>
+                <Select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  label="Status"
+                >
+                  <MenuItem value="">All Status</MenuItem>
+                  <MenuItem value="In Stock">In Stock</MenuItem>
+                  <MenuItem value="Low Stock">Low Stock</MenuItem>
+                  <MenuItem value="Out of Stock">Out of Stock</MenuItem>
+                  <MenuItem value="Overstocked">Overstocked</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Tags</InputLabel>
+                <Select
+                  multiple
+                  value={tagFilter}
+                  onChange={(e) => setTagFilter(typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value)}
+                  input={<OutlinedInput label="Tags" />}
+                  renderValue={(selected) => selected.join(', ')}
+                >
+                  {allTags.map((tag) => (
+                    <MenuItem key={tag} value={tag}>
+                      <Checkbox checked={tagFilter.indexOf(tag) > -1} />
+                      <ListItemText primary={tag} />
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
+        </Box>
+      )}
+    </Box>
+  );
+
   const renderInventoryTable = () => (
-    <TableContainer component={Paper}>
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell>SKU</TableCell>
-            <TableCell>Name</TableCell>
-            <TableCell>Category</TableCell>
-            <TableCell align="right">Warehouse</TableCell>
-            <TableCell align="right">Trucks</TableCell>
-            <TableCell align="right">Allocated</TableCell>
-            <TableCell align="right">Total</TableCell>
-            <TableCell align="right">Cost</TableCell>
-            <TableCell align="right">Price</TableCell>
-            <TableCell>Status</TableCell>
-            <TableCell align="center">Actions</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {inventoryData.map((item) => (
-            <TableRow key={item.id}>
-              <TableCell>{item.sku}</TableCell>
-              <TableCell>{item.name}</TableCell>
-              <TableCell>{item.category}</TableCell>
-              <TableCell align="right">{item.warehouseStock}</TableCell>
-              <TableCell align="right">{item.truckStock}</TableCell>
-              <TableCell align="right">{item.allocatedStock}</TableCell>
-              <TableCell align="right">{item.totalStock}</TableCell>
-              <TableCell align="right">${item.cost.toFixed(2)}</TableCell>
-              <TableCell align="right">${item.price.toFixed(2)}</TableCell>
-              <TableCell>
-                <Chip 
-                  label={item.status} 
-                  color={getStatusColor(item.status) as any}
-                  size="small"
-                />
-              </TableCell>
-              <TableCell align="center">
-                <IconButton onClick={handleMenuOpen}>
-                  <MoreVertIcon />
-                </IconButton>
-              </TableCell>
+    <Box>
+      {renderSearchAndFilters()}
+      
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="body2" color="text.secondary">
+          Showing {filteredInventory.length} of {inventoryData.length} items
+        </Typography>
+      </Box>
+
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>SKU</TableCell>
+              <TableCell>Part Number</TableCell>
+              <TableCell>Name</TableCell>
+              <TableCell>Manufacturer</TableCell>
+              <TableCell>Vendor</TableCell>
+              <TableCell>Category</TableCell>
+              <TableCell align="right">Warehouse</TableCell>
+              <TableCell align="right">Trucks</TableCell>
+              <TableCell align="right">Allocated</TableCell>
+              <TableCell align="right">Total</TableCell>
+              <TableCell align="right">Cost</TableCell>
+              <TableCell align="right">Selling Price</TableCell>
+              <TableCell>Status</TableCell>
+              <TableCell>Tags</TableCell>
+              <TableCell align="center">Actions</TableCell>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
+          </TableHead>
+          <TableBody>
+            {filteredInventory.map((item) => (
+              <TableRow key={item.id}>
+                <TableCell>{item.sku}</TableCell>
+                <TableCell>{item.partNumber}</TableCell>
+                <TableCell>
+                  <Box>
+                    <Typography variant="body2" fontWeight="medium">
+                      {item.name}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {item.description.substring(0, 50)}...
+                    </Typography>
+                  </Box>
+                </TableCell>
+                <TableCell>{item.manufacturer}</TableCell>
+                <TableCell>{item.vendor}</TableCell>
+                <TableCell>{item.category}</TableCell>
+                <TableCell align="right">{item.warehouseStock}</TableCell>
+                <TableCell align="right">{item.truckStock}</TableCell>
+                <TableCell align="right">{item.allocatedStock}</TableCell>
+                <TableCell align="right">{item.totalStock}</TableCell>
+                <TableCell align="right">${item.cost.toFixed(2)}</TableCell>
+                <TableCell align="right">${item.sellingPrice.toFixed(2)}</TableCell>
+                <TableCell>
+                  <Chip 
+                    label={item.status} 
+                    color={getStatusColor(item.status) as any}
+                    size="small"
+                  />
+                </TableCell>
+                <TableCell>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {item.tags.slice(0, 2).map((tag, index) => (
+                      <Chip key={index} label={tag} size="small" variant="outlined" />
+                    ))}
+                    {item.tags.length > 2 && (
+                      <Chip label={`+${item.tags.length - 2}`} size="small" />
+                    )}
+                  </Box>
+                </TableCell>
+                <TableCell align="center">
+                  <IconButton onClick={handleMenuOpen}>
+                    <MoreVertIcon />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Box>
   );
 
   const renderStockMovement = () => (
