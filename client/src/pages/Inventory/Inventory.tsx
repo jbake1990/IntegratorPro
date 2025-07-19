@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -761,7 +761,7 @@ const Inventory: React.FC = () => {
     return inventoryItem ? inventoryItem.warehouseStock : 0;
   };
 
-  const calculateAndUpdateAllocatedStock = () => {
+  const calculateAndUpdateAllocatedStock = useCallback(() => {
     const updatedInventoryData = inventoryData.map(inv => {
       // Calculate total allocated stock for this part across all jobs
       const totalAllocated = jobs.reduce((total, job) => {
@@ -779,12 +779,12 @@ const Inventory: React.FC = () => {
     });
 
     setInventoryData(updatedInventoryData);
-  };
+  }, [jobs, inventoryData]);
 
   // Initialize allocated stock when component mounts
   useEffect(() => {
     calculateAndUpdateAllocatedStock();
-  }, []);
+  }, [calculateAndUpdateAllocatedStock]);
 
   const handleSendToBilling = (quote: Quote) => {
     // In a real app, this would create an invoice from the quote
