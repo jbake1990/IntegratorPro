@@ -18,24 +18,16 @@ import {
   TableHead,
   TableRow,
   Paper,
-  IconButton,
   Chip,
-  Alert,
   FormControl,
   InputLabel,
   Select,
-  MenuItem,
-  Checkbox,
-  FormControlLabel,
-  Divider
+  MenuItem
 } from '@mui/material';
 import {
   Add as AddIcon,
-  CheckCircle as CheckCircleIcon,
   Receipt as ReceiptIcon,
-  Inventory as InventoryIcon,
-  Save as SaveIcon,
-  Cancel as CancelIcon
+  Save as SaveIcon
 } from '@mui/icons-material';
 
 interface ReceivedItem {
