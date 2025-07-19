@@ -352,6 +352,10 @@ const Inventory: React.FC = () => {
   const [newQuoteName, setNewQuoteName] = useState('');
   const [showAddQuoteDialog, setShowAddQuoteDialog] = useState(false);
   
+  // Part editing state
+  const [editingPartQuantities, setEditingPartQuantities] = useState<{[key: string]: number}>({});
+  const [selectedQuoteForEdit, setSelectedQuoteForEdit] = useState<Quote | null>(null);
+  
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('');
@@ -605,6 +609,149 @@ const Inventory: React.FC = () => {
     );
 
     setSelectedJob(updatedJob);
+  };
+
+  const handlePartQuantityChange = (quoteId: string, partId: string, newQuantity: number) => {
+    if (!selectedJob || newQuantity < 0) return;
+
+    const updatedJob = {
+      ...selectedJob,
+      quotes: selectedJob.quotes.map(quote => {
+        if (quote.id === quoteId) {
+          return {
+            ...quote,
+            parts: quote.parts.map(part => {
+              if (part.itemId === partId) {
+                const totalCost = part.cost * newQuantity;
+                return {
+                  ...part,
+                  quantity: newQuantity
+                };
+              }
+              return part;
+            })
+          };
+        }
+        return quote;
+      })
+    };
+
+    // Recalculate total value for the quote
+    updatedJob.quotes = updatedJob.quotes.map(quote => {
+      if (quote.id === quoteId) {
+        const totalValue = quote.parts.reduce((sum, part) => sum + (part.cost * part.quantity), 0);
+        return { ...quote, totalValue };
+      }
+      return quote;
+    });
+
+    // Recalculate total job value
+    updatedJob.totalValue = updatedJob.quotes.reduce((sum, quote) => sum + quote.totalValue, 0);
+
+    setJobs(prevJobs => 
+      prevJobs.map(job => 
+        job.id === selectedJob.id ? updatedJob : job
+      )
+    );
+
+    setSelectedJob(updatedJob);
+  };
+
+  const handleRemovePart = (quoteId: string, partId: string) => {
+    if (!selectedJob) return;
+
+    const updatedJob = {
+      ...selectedJob,
+      quotes: selectedJob.quotes.map(quote => {
+        if (quote.id === quoteId) {
+          return {
+            ...quote,
+            parts: quote.parts.filter(part => part.itemId !== partId)
+          };
+        }
+        return quote;
+      })
+    };
+
+    // Recalculate total value for the quote
+    updatedJob.quotes = updatedJob.quotes.map(quote => {
+      if (quote.id === quoteId) {
+        const totalValue = quote.parts.reduce((sum, part) => sum + (part.cost * part.quantity), 0);
+        return { ...quote, totalValue };
+      }
+      return quote;
+    });
+
+    // Recalculate total job value
+    updatedJob.totalValue = updatedJob.quotes.reduce((sum, quote) => sum + quote.totalValue, 0);
+
+    setJobs(prevJobs => 
+      prevJobs.map(job => 
+        job.id === selectedJob.id ? updatedJob : job
+      )
+    );
+
+    setSelectedJob(updatedJob);
+  };
+
+  const handleAddPartToQuote = (quoteId: string, part: InventoryItem) => {
+    if (!selectedJob) return;
+
+    const newJobPart: JobPart = {
+      itemId: part.id,
+      partNumber: part.partNumber,
+      name: part.name,
+      quantity: 1,
+      cost: part.cost,
+      manufacturer: part.manufacturer
+    };
+
+    const updatedJob = {
+      ...selectedJob,
+      quotes: selectedJob.quotes.map(quote => {
+        if (quote.id === quoteId) {
+          const updatedParts = [...quote.parts, newJobPart];
+          const totalValue = updatedParts.reduce((sum, part) => sum + (part.cost * part.quantity), 0);
+          return { ...quote, parts: updatedParts, totalValue };
+        }
+        return quote;
+      })
+    };
+
+    // Recalculate total job value
+    updatedJob.totalValue = updatedJob.quotes.reduce((sum, quote) => sum + quote.totalValue, 0);
+
+    setJobs(prevJobs => 
+      prevJobs.map(job => 
+        job.id === selectedJob.id ? updatedJob : job
+      )
+    );
+
+    setSelectedJob(updatedJob);
+  };
+
+  const getWarehouseStockForPart = (partNumber: string) => {
+    const inventoryItem = inventoryData.find(item => item.partNumber === partNumber);
+    return inventoryItem ? inventoryItem.warehouseStock : 0;
+  };
+
+  const handleSendToBilling = (quote: Quote) => {
+    // In a real app, this would create an invoice from the quote
+    console.log('Creating invoice from quote:', quote.id);
+    console.log('Quote details:', {
+      name: quote.name,
+      parts: quote.parts,
+      totalValue: quote.totalValue
+    });
+    
+    // For demo purposes, show an alert
+    alert(`Quote "${quote.name}" sent to billing!\nTotal: $${quote.totalValue.toFixed(2)}\nParts: ${quote.parts.length}`);
+  };
+
+  const handleEditQuote = (quote: Quote) => {
+    setSelectedQuoteForEdit(quote);
+    // TODO: Open quote edit dialog for adding parts
+    console.log('Edit quote:', quote.id);
   };
 
   // Get unique values for filter dropdowns
@@ -1327,10 +1474,7 @@ const Inventory: React.FC = () => {
                           size="small"
                           variant="outlined"
                           startIcon={<EditIcon />}
-                          onClick={() => {
-                            // TODO: Open quote edit dialog
-                            console.log('Edit quote:', quote.id);
-                          }}
+                          onClick={() => handleEditQuote(quote)}
                         >
                           Edit
                         </Button>
@@ -1338,10 +1482,7 @@ const Inventory: React.FC = () => {
                           size="small"
                           variant="contained"
                           startIcon={<ReceiptIcon />}
-                          onClick={() => {
-                            // TODO: Send to billing
-                            console.log('Send quote to billing:', quote.id);
-                          }}
+                          onClick={() => handleSendToBilling(quote)}
                         >
                           Send to Billing
                         </Button>
@@ -1360,57 +1501,59 @@ const Inventory: React.FC = () => {
                           <TableRow>
                             <TableCell>Part Number</TableCell>
                             <TableCell>Name</TableCell>
+                            <TableCell align="right">Price Each</TableCell>
                             <TableCell align="right">Quantity</TableCell>
-                            <TableCell align="right">Cost</TableCell>
+                            <TableCell align="right">Total</TableCell>
+                            <TableCell align="center">Warehouse Stock</TableCell>
                             <TableCell align="center">Actions</TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
-                          {quote.parts.map((part) => (
-                            <TableRow key={part.itemId}>
-                              <TableCell>{part.partNumber}</TableCell>
-                              <TableCell>{part.name}</TableCell>
-                              <TableCell align="right">{part.quantity}</TableCell>
-                              <TableCell align="right">${part.cost.toFixed(2)}</TableCell>
-                              <TableCell align="center">
-                                <Box sx={{ display: 'flex', gap: 1 }}>
-                                  <IconButton
+                          {quote.parts.map((part) => {
+                            const warehouseStock = getWarehouseStockForPart(part.partNumber);
+                            const totalPrice = part.cost * part.quantity;
+                            return (
+                              <TableRow key={part.itemId}>
+                                <TableCell>{part.partNumber}</TableCell>
+                                <TableCell>{part.name}</TableCell>
+                                <TableCell align="right">${part.cost.toFixed(2)}</TableCell>
+                                <TableCell align="right">
+                                  <TextField
+                                    type="number"
                                     size="small"
-                                    color="primary"
-                                    title="Add to Warehouse"
-                                    onClick={() => {
-                                      // TODO: Add part to warehouse
-                                      console.log('Add to warehouse:', part.partNumber);
+                                    value={part.quantity}
+                                    sx={{ width: 80 }}
+                                    inputProps={{ min: 0, max: warehouseStock }}
+                                    onChange={(e) => {
+                                      const newQuantity = Number(e.target.value);
+                                      if (newQuantity >= 0 && newQuantity <= warehouseStock) {
+                                        handlePartQuantityChange(quote.id, part.itemId, newQuantity);
+                                      }
                                     }}
+                                  />
+                                </TableCell>
+                                <TableCell align="right">${totalPrice.toFixed(2)}</TableCell>
+                                <TableCell align="center">
+                                  <Typography 
+                                    variant="body2" 
+                                    color={warehouseStock > 0 ? 'success.main' : 'error.main'}
                                   >
-                                    <AddIcon />
-                                  </IconButton>
-                                  <IconButton
-                                    size="small"
-                                    color="secondary"
-                                    title="Add to Truck"
-                                    onClick={() => {
-                                      // TODO: Add part to truck
-                                      console.log('Add to truck:', part.partNumber);
-                                    }}
-                                  >
-                                    <TruckIcon />
-                                  </IconButton>
+                                    {warehouseStock}
+                                  </Typography>
+                                </TableCell>
+                                <TableCell align="center">
                                   <IconButton
                                     size="small"
                                     color="error"
                                     title="Remove Part"
-                                    onClick={() => {
-                                      // TODO: Remove part from quote
-                                      console.log('Remove part:', part.partNumber);
-                                    }}
+                                    onClick={() => handleRemovePart(quote.id, part.itemId)}
                                   >
                                     <DeleteIcon />
                                   </IconButton>
-                                </Box>
-                              </TableCell>
-                            </TableRow>
-                          ))}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
                         </TableBody>
                       </Table>
                     </TableContainer>
