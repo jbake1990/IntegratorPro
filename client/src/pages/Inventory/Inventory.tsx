@@ -81,9 +81,6 @@ interface TruckInventory {
 interface ServiceTruck {
   id: string;
   name: string;
-  number: string;
-  driver: string;
-  location: string;
   inventory: TruckInventory[];
 }
 
@@ -174,9 +171,6 @@ const mockTrucks: ServiceTruck[] = [
   {
     id: 'truck-1',
     name: 'Service Truck 1',
-    number: 'ST-001',
-    driver: 'John Smith',
-    location: 'Downtown Area',
     inventory: [
       {
         itemId: '1',
@@ -199,9 +193,6 @@ const mockTrucks: ServiceTruck[] = [
   {
     id: 'truck-2',
     name: 'Service Truck 2',
-    number: 'ST-002',
-    driver: 'Mike Johnson',
-    location: 'Suburban Area',
     inventory: [
       {
         itemId: '1',
@@ -544,10 +535,7 @@ const Inventory: React.FC = () => {
                       {truck.name}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      {truck.number} • {truck.driver}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {truck.location}
+                      {truck.inventory.length} items on truck
                     </Typography>
                   </Box>
                   <IconButton
@@ -595,9 +583,6 @@ const Inventory: React.FC = () => {
             </Button>
             <Typography variant="h6">
               {selectedTruck.name} - Inventory
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {selectedTruck.number} • {selectedTruck.driver} • {selectedTruck.location}
             </Typography>
           </Box>
           <Button
@@ -769,24 +754,6 @@ const Inventory: React.FC = () => {
                 defaultValue={selectedTruck.name}
                 margin="normal"
               />
-              <TextField
-                fullWidth
-                label="Truck Number"
-                defaultValue={selectedTruck.number}
-                margin="normal"
-              />
-              <TextField
-                fullWidth
-                label="Driver"
-                defaultValue={selectedTruck.driver}
-                margin="normal"
-              />
-              <TextField
-                fullWidth
-                label="Location"
-                defaultValue={selectedTruck.location}
-                margin="normal"
-              />
             </Grid>
             <Grid item xs={12} md={6}>
               <Typography variant="h6" gutterBottom>
@@ -908,27 +875,6 @@ const Inventory: React.FC = () => {
               placeholder="e.g., Service Truck 3"
             />
           </Grid>
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Truck Number"
-              placeholder="e.g., ST-003"
-            />
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Driver"
-              placeholder="e.g., Sarah Wilson"
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Location"
-              placeholder="e.g., Westside Area"
-            />
-          </Grid>
         </Grid>
       </DialogContent>
       <DialogActions>
@@ -953,27 +899,6 @@ const Inventory: React.FC = () => {
                 fullWidth
                 label="Truck Name"
                 defaultValue={selectedTruck.name}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Truck Number"
-                defaultValue={selectedTruck.number}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Driver"
-                defaultValue={selectedTruck.driver}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Location"
-                defaultValue={selectedTruck.location}
               />
             </Grid>
           </Grid>
