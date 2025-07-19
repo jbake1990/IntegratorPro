@@ -228,12 +228,10 @@ const Inventory: React.FC = () => {
   const filteredInventory = useMemo(() => {
     return inventoryData.filter(item => {
       const matchesSearch = searchTerm === '' || 
-        item.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.partNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.manufacturer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.vendor.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
 
       const matchesCategory = categoryFilter === '' || item.category === categoryFilter;
@@ -253,7 +251,7 @@ const Inventory: React.FC = () => {
         <Grid item xs={12} md={6}>
           <TextField
             fullWidth
-            placeholder="Search SKU, part number, name, description, manufacturer, vendor, or tags..."
+            placeholder="Search part number, name, description, manufacturer, or tags..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             InputProps={{
@@ -387,30 +385,25 @@ const Inventory: React.FC = () => {
       </Box>
 
       <TableContainer component={Paper} sx={{ maxWidth: '100%', overflowX: 'auto' }}>
-        <Table sx={{ minWidth: 1200 }}>
+        <Table sx={{ minWidth: 1000 }}>
           <TableHead>
             <TableRow>
-              <TableCell sx={{ minWidth: 80 }}>SKU</TableCell>
               <TableCell sx={{ minWidth: 120 }}>Part Number</TableCell>
               <TableCell sx={{ minWidth: 200 }}>Name</TableCell>
               <TableCell sx={{ minWidth: 120 }}>Manufacturer</TableCell>
-              <TableCell sx={{ minWidth: 120 }}>Vendor</TableCell>
-              <TableCell sx={{ minWidth: 100 }}>Category</TableCell>
+              <TableCell sx={{ minWidth: 120 }}>Tags</TableCell>
               <TableCell align="right" sx={{ minWidth: 80 }}>Warehouse</TableCell>
               <TableCell align="right" sx={{ minWidth: 80 }}>Trucks</TableCell>
               <TableCell align="right" sx={{ minWidth: 80 }}>Allocated</TableCell>
               <TableCell align="right" sx={{ minWidth: 80 }}>Total</TableCell>
               <TableCell align="right" sx={{ minWidth: 80 }}>Cost</TableCell>
               <TableCell align="right" sx={{ minWidth: 100 }}>Selling Price</TableCell>
-              <TableCell sx={{ minWidth: 100 }}>Status</TableCell>
-              <TableCell sx={{ minWidth: 120 }}>Tags</TableCell>
               <TableCell align="center" sx={{ minWidth: 60 }}>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {filteredInventory.map((item) => (
               <TableRow key={item.id}>
-                <TableCell sx={{ minWidth: 80 }}>{item.sku}</TableCell>
                 <TableCell sx={{ minWidth: 120 }}>{item.partNumber}</TableCell>
                 <TableCell sx={{ minWidth: 200 }}>
                   <Box>
@@ -426,25 +419,6 @@ const Inventory: React.FC = () => {
                   <Typography noWrap>{item.manufacturer}</Typography>
                 </TableCell>
                 <TableCell sx={{ minWidth: 120 }}>
-                  <Typography noWrap>{item.vendor}</Typography>
-                </TableCell>
-                <TableCell sx={{ minWidth: 100 }}>
-                  <Typography noWrap>{item.category}</Typography>
-                </TableCell>
-                <TableCell align="right" sx={{ minWidth: 80 }}>{item.warehouseStock}</TableCell>
-                <TableCell align="right" sx={{ minWidth: 80 }}>{item.truckStock}</TableCell>
-                <TableCell align="right" sx={{ minWidth: 80 }}>{item.allocatedStock}</TableCell>
-                <TableCell align="right" sx={{ minWidth: 80 }}>{item.totalStock}</TableCell>
-                <TableCell align="right" sx={{ minWidth: 80 }}>${item.cost.toFixed(2)}</TableCell>
-                <TableCell align="right" sx={{ minWidth: 100 }}>${item.sellingPrice.toFixed(2)}</TableCell>
-                <TableCell sx={{ minWidth: 100 }}>
-                  <Chip 
-                    label={item.status} 
-                    color={getStatusColor(item.status) as any}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell sx={{ minWidth: 120 }}>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                     {item.tags.slice(0, 2).map((tag, index) => (
                       <Chip key={index} label={tag} size="small" variant="outlined" />
@@ -454,6 +428,12 @@ const Inventory: React.FC = () => {
                     )}
                   </Box>
                 </TableCell>
+                <TableCell align="right" sx={{ minWidth: 80 }}>{item.warehouseStock}</TableCell>
+                <TableCell align="right" sx={{ minWidth: 80 }}>{item.truckStock}</TableCell>
+                <TableCell align="right" sx={{ minWidth: 80 }}>{item.allocatedStock}</TableCell>
+                <TableCell align="right" sx={{ minWidth: 80 }}>{item.totalStock}</TableCell>
+                <TableCell align="right" sx={{ minWidth: 80 }}>${item.cost.toFixed(2)}</TableCell>
+                <TableCell align="right" sx={{ minWidth: 100 }}>${item.sellingPrice.toFixed(2)}</TableCell>
                 <TableCell align="center" sx={{ minWidth: 60 }}>
                   <IconButton onClick={handleMenuOpen} size="small">
                     <MoreVertIcon />
