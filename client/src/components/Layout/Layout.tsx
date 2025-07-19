@@ -157,7 +157,15 @@ const Layout: React.FC = () => {
           </Toolbar>
         </AppBar>
         
-        <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+        <Box 
+          component="main" 
+          sx={{ 
+            flexGrow: 1, 
+            p: 3,
+            ml: { xs: 0, sm: `${drawerWidth}px` },
+            width: { xs: '100%', sm: `calc(100% - ${drawerWidth}px)` }
+          }}
+        >
           <Outlet />
         </Box>
       </Box>
