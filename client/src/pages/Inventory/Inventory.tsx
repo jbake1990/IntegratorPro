@@ -31,14 +31,7 @@ import {
   Select,
   OutlinedInput,
   Checkbox,
-  ListItemText,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText as MuiListItemText,
-  Divider,
-  Badge
+  ListItemText
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -46,9 +39,6 @@ import {
   Delete as DeleteIcon,
   MoreVert as MoreVertIcon,
   LocalShipping as TruckIcon,
-  Warehouse as WarehouseIcon,
-  Person as CustomerIcon,
-  Assignment as JobIcon,
   Search as SearchIcon,
   FilterList as FilterIcon,
   Clear as ClearIcon,
@@ -236,7 +226,7 @@ const mockTrucks: ServiceTruck[] = [
 const Inventory: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [inventoryData] = useState<InventoryItem[]>(mockInventoryData);
-  const [trucks, setTrucks] = useState<ServiceTruck[]>(mockTrucks);
+  const [trucks] = useState<ServiceTruck[]>(mockTrucks);
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogType, setDialogType] = useState<'add' | 'edit' | 'move' | 'adjust' | 'addTruck' | 'editTruck' | 'truckSettings'>('add');
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
