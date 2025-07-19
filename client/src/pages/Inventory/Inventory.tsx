@@ -31,7 +31,14 @@ import {
   Select,
   OutlinedInput,
   Checkbox,
-  ListItemText
+  ListItemText,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText as MuiListItemText,
+  Divider,
+  Badge
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -44,7 +51,11 @@ import {
   Assignment as JobIcon,
   Search as SearchIcon,
   FilterList as FilterIcon,
-  Clear as ClearIcon
+  Clear as ClearIcon,
+  DirectionsCar as CarIcon,
+  Settings as SettingsIcon,
+  ArrowUpward as MoveToTruckIcon,
+  ArrowDownward as MoveToWarehouseIcon
 } from '@mui/icons-material';
 
 interface InventoryItem {
@@ -66,6 +77,24 @@ interface InventoryItem {
   cost: number;
   sellingPrice: number;
   status: 'In Stock' | 'Low Stock' | 'Out of Stock' | 'Overstocked';
+}
+
+interface TruckInventory {
+  itemId: string;
+  partNumber: string;
+  name: string;
+  actualCount: number;
+  buildToCount: number;
+  manufacturer: string;
+}
+
+interface ServiceTruck {
+  id: string;
+  name: string;
+  number: string;
+  driver: string;
+  location: string;
+  inventory: TruckInventory[];
 }
 
 const mockInventoryData: InventoryItem[] = [
@@ -151,13 +180,69 @@ const mockInventoryData: InventoryItem[] = [
   }
 ];
 
+const mockTrucks: ServiceTruck[] = [
+  {
+    id: 'truck-1',
+    name: 'Service Truck 1',
+    number: 'ST-001',
+    driver: 'John Smith',
+    location: 'Downtown Area',
+    inventory: [
+      {
+        itemId: '1',
+        partNumber: 'SPK-8IN-CEILING',
+        name: 'In-Ceiling Speaker 8"',
+        actualCount: 5,
+        buildToCount: 8,
+        manufacturer: 'AudioTech Pro'
+      },
+      {
+        itemId: '2',
+        partNumber: 'AMP-MULTI-ZONE-6CH',
+        name: 'Multi-Zone Amplifier',
+        actualCount: 2,
+        buildToCount: 3,
+        manufacturer: 'SoundMaster'
+      }
+    ]
+  },
+  {
+    id: 'truck-2',
+    name: 'Service Truck 2',
+    number: 'ST-002',
+    driver: 'Mike Johnson',
+    location: 'Suburban Area',
+    inventory: [
+      {
+        itemId: '1',
+        partNumber: 'SPK-8IN-CEILING',
+        name: 'In-Ceiling Speaker 8"',
+        actualCount: 3,
+        buildToCount: 6,
+        manufacturer: 'AudioTech Pro'
+      },
+      {
+        itemId: '4',
+        partNumber: 'CTRL-UNIVERSAL-IR',
+        name: 'Universal IR Controller',
+        actualCount: 4,
+        buildToCount: 5,
+        manufacturer: 'ControlTech'
+      }
+    ]
+  }
+];
+
 const Inventory: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [inventoryData] = useState<InventoryItem[]>(mockInventoryData);
+  const [trucks, setTrucks] = useState<ServiceTruck[]>(mockTrucks);
   const [openDialog, setOpenDialog] = useState(false);
-  const [dialogType, setDialogType] = useState<'add' | 'edit' | 'move' | 'adjust'>('add');
+  const [dialogType, setDialogType] = useState<'add' | 'edit' | 'move' | 'adjust' | 'addTruck' | 'editTruck' | 'truckSettings'>('add');
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
+  const [selectedTruck, setSelectedTruck] = useState<ServiceTruck | null>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [truckView, setTruckView] = useState<'list' | 'inventory'>('list');
   
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -170,17 +255,20 @@ const Inventory: React.FC = () => {
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
+    setTruckView('list');
   };
 
-  const handleOpenDialog = (type: 'add' | 'edit' | 'move' | 'adjust', item?: InventoryItem | null) => {
+  const handleOpenDialog = (type: 'add' | 'edit' | 'move' | 'adjust' | 'addTruck' | 'editTruck' | 'truckSettings', item?: InventoryItem | null, truck?: ServiceTruck | null) => {
     setDialogType(type);
     setSelectedItem(item || null);
+    setSelectedTruck(truck || null);
     setOpenDialog(true);
   };
 
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setSelectedItem(null);
+    setSelectedTruck(null);
   };
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -198,6 +286,16 @@ const Inventory: React.FC = () => {
     setVendorFilter('');
     setStatusFilter('');
     setTagFilter([]);
+  };
+
+  const handleTruckClick = (truck: ServiceTruck) => {
+    setSelectedTruck(truck);
+    setTruckView('inventory');
+  };
+
+  const handleBackToList = () => {
+    setTruckView('list');
+    setSelectedTruck(null);
   };
 
   // Get unique values for filter dropdowns
@@ -432,65 +530,164 @@ const Inventory: React.FC = () => {
     </Box>
   );
 
+  const renderTruckList = () => (
+    <Box>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h6">Service Trucks</Typography>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => handleOpenDialog('addTruck')}
+        >
+          Add Truck
+        </Button>
+      </Box>
+      
+      <Grid container spacing={2}>
+        {trucks.map((truck) => (
+          <Grid item xs={12} md={6} key={truck.id}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                  <Box>
+                    <Typography variant="h6" gutterBottom>
+                      {truck.name}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {truck.number} • {truck.driver}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {truck.location}
+                    </Typography>
+                  </Box>
+                  <IconButton
+                    size="small"
+                    onClick={() => handleOpenDialog('editTruck', null, truck)}
+                  >
+                    <SettingsIcon />
+                  </IconButton>
+                </Box>
+                
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    {truck.inventory.length} items on truck
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => handleTruckClick(truck)}
+                  >
+                    View Inventory
+                  </Button>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+    </Box>
+  );
+
+  const renderTruckInventory = () => {
+    if (!selectedTruck) return null;
+
+    return (
+      <Box>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Box>
+            <Button
+              variant="outlined"
+              startIcon={<CarIcon />}
+              onClick={handleBackToList}
+              sx={{ mb: 1 }}
+            >
+              Back to Trucks
+            </Button>
+            <Typography variant="h6">
+              {selectedTruck.name} - Inventory
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {selectedTruck.number} • {selectedTruck.driver} • {selectedTruck.location}
+            </Typography>
+          </Box>
+          <Button
+            variant="contained"
+            startIcon={<SettingsIcon />}
+            onClick={() => handleOpenDialog('truckSettings', null, selectedTruck)}
+          >
+            Truck Settings
+          </Button>
+        </Box>
+
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Part Number</TableCell>
+                <TableCell>Name</TableCell>
+                <TableCell>Manufacturer</TableCell>
+                <TableCell align="right">Actual Count</TableCell>
+                <TableCell align="right">Build To</TableCell>
+                <TableCell align="right">Warehouse Available</TableCell>
+                <TableCell align="center">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {selectedTruck.inventory.map((item) => {
+                const warehouseItem = inventoryData.find(inv => inv.partNumber === item.partNumber);
+                return (
+                  <TableRow key={item.itemId}>
+                    <TableCell>{item.partNumber}</TableCell>
+                    <TableCell>{item.name}</TableCell>
+                    <TableCell>{item.manufacturer}</TableCell>
+                    <TableCell align="right">
+                      <Typography variant="body2" fontWeight="medium">
+                        {item.actualCount}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography variant="body2" color="text.secondary">
+                        {item.buildToCount}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography variant="body2" color="text.secondary">
+                        {warehouseItem?.warehouseStock || 0}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          title="Move from Warehouse to Truck"
+                          disabled={!warehouseItem || warehouseItem.warehouseStock === 0}
+                        >
+                          <MoveToTruckIcon />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          color="secondary"
+                          title="Move from Truck to Warehouse"
+                          disabled={item.actualCount === 0}
+                        >
+                          <MoveToWarehouseIcon />
+                        </IconButton>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Box>
+    );
+  };
+
   const renderStockMovement = () => (
     <Box>
-      <Typography variant="h6" gutterBottom>
-        Stock Movement
-      </Typography>
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                <WarehouseIcon sx={{ mr: 1 }} />
-                Warehouse to Truck
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Move inventory from warehouse to trucks for field work
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                <CustomerIcon sx={{ mr: 1 }} />
-                Allocate to Customer
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Reserve inventory for specific customers or jobs
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                <JobIcon sx={{ mr: 1 }} />
-                Job Allocation
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Allocate inventory to specific installation jobs
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                <TruckIcon sx={{ mr: 1 }} />
-                Truck to Warehouse
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Return unused inventory from trucks to warehouse
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+      {truckView === 'list' ? renderTruckList() : renderTruckInventory()}
     </Box>
   );
 
@@ -629,6 +826,9 @@ const Inventory: React.FC = () => {
           {dialogType === 'edit' && 'Edit Inventory Item'}
           {dialogType === 'move' && 'Move Stock'}
           {dialogType === 'adjust' && 'Adjust Stock Count'}
+          {dialogType === 'addTruck' && 'Add New Service Truck'}
+          {dialogType === 'editTruck' && 'Edit Service Truck'}
+          {dialogType === 'truckSettings' && 'Truck Settings'}
         </DialogTitle>
         <DialogContent>
           <Alert severity="info" sx={{ mb: 2 }}>
@@ -639,6 +839,9 @@ const Inventory: React.FC = () => {
             {dialogType === 'edit' && 'Edit item details and pricing'}
             {dialogType === 'move' && 'Move stock between warehouse, trucks, and allocations'}
             {dialogType === 'adjust' && 'Manually adjust stock counts'}
+            {dialogType === 'addTruck' && 'Add a new service truck to your fleet'}
+            {dialogType === 'editTruck' && 'Modify existing service truck details'}
+            {dialogType === 'truckSettings' && 'Configure settings for the selected service truck'}
           </Typography>
         </DialogContent>
         <DialogActions>
@@ -648,6 +851,9 @@ const Inventory: React.FC = () => {
             {dialogType === 'edit' && 'Save Changes'}
             {dialogType === 'move' && 'Move Stock'}
             {dialogType === 'adjust' && 'Adjust Count'}
+            {dialogType === 'addTruck' && 'Add Truck'}
+            {dialogType === 'editTruck' && 'Save Truck Changes'}
+            {dialogType === 'truckSettings' && 'Save Settings'}
           </Button>
         </DialogActions>
       </Dialog>
