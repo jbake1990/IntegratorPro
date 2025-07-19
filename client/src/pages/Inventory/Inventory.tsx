@@ -222,7 +222,7 @@ const Inventory: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [selectedTruck, setSelectedTruck] = useState<ServiceTruck | null>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [truckView, setTruckView] = useState<'list' | 'inventory'>('list');
+  const [truckView, setTruckView] = useState<'trucks' | 'jobs'>('trucks');
   const [addItemSearch, setAddItemSearch] = useState('');
   const [filteredAddItems, setFilteredAddItems] = useState<InventoryItem[]>([]);
   const [showAddItemResults, setShowAddItemResults] = useState(false);
@@ -247,7 +247,7 @@ const Inventory: React.FC = () => {
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
-    setTruckView('list');
+    setTruckView('trucks');
   };
 
   const handleOpenDialog = (type: 'add' | 'edit' | 'move' | 'adjust' | 'addTruck' | 'editTruck' | 'truckSettings', item?: InventoryItem | null, truck?: ServiceTruck | null) => {
@@ -282,7 +282,7 @@ const Inventory: React.FC = () => {
 
   const handleTruckClick = (truck: ServiceTruck) => {
     setSelectedTruck(truck);
-    setTruckView('inventory');
+    setTruckView('trucks');
   };
 
 
@@ -700,7 +700,7 @@ const Inventory: React.FC = () => {
         </Button>
       </Box>
 
-      {truckView === 'list' ? renderTruckList() : (
+      {truckView === 'trucks' ? renderTruckList() : (
         <Box>
           <Typography variant="h6" gutterBottom>
             Kitted Jobs
