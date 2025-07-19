@@ -200,21 +200,6 @@ const Inventory: React.FC = () => {
     setTagFilter([]);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'In Stock':
-        return 'success';
-      case 'Low Stock':
-        return 'warning';
-      case 'Out of Stock':
-        return 'error';
-      case 'Overstocked':
-        return 'info';
-      default:
-        return 'default';
-    }
-  };
-
   // Get unique values for filter dropdowns
   const categories = useMemo(() => Array.from(new Set(inventoryData.map(item => item.category))), [inventoryData]);
   const manufacturers = useMemo(() => Array.from(new Set(inventoryData.map(item => item.manufacturer))), [inventoryData]);
