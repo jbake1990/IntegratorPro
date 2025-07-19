@@ -224,6 +224,11 @@ const Inventory: React.FC = () => {
   const [selectedTruck, setSelectedTruck] = useState<ServiceTruck | null>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [truckView, setTruckView] = useState<'list' | 'inventory'>('list');
+  const [addItemSearch, setAddItemSearch] = useState('');
+  const [filteredAddItems, setFilteredAddItems] = useState<InventoryItem[]>([]);
+  const [showAddItemResults, setShowAddItemResults] = useState(false);
+  const [selectedAddItem, setSelectedAddItem] = useState<InventoryItem | null>(null);
+  const [addItemBuildTo, setAddItemBuildTo] = useState<number>(1);
   
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -277,6 +282,42 @@ const Inventory: React.FC = () => {
   const handleBackToList = () => {
     setTruckView('list');
     setSelectedTruck(null);
+  };
+
+  const handleAddItemSearch = (searchTerm: string) => {
+    setAddItemSearch(searchTerm);
+    if (searchTerm.length < 2) {
+      setFilteredAddItems([]);
+      setShowAddItemResults(false);
+      return;
+    }
+
+    const filtered = inventoryData.filter(item => 
+      item.partNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.manufacturer.toLowerCase().includes(searchTerm.toLowerCase())
+    ).slice(0, 10); // Limit to 10 results for performance
+
+    setFilteredAddItems(filtered);
+    setShowAddItemResults(true);
+  };
+
+  const handleSelectAddItem = (item: InventoryItem) => {
+    setSelectedAddItem(item);
+    setAddItemSearch(`${item.partNumber} - ${item.name}`);
+    setShowAddItemResults(false);
+  };
+
+  const handleAddItemToTruck = () => {
+    if (!selectedAddItem || !selectedTruck) return;
+    
+    // In a real app, this would update the truck inventory
+    console.log('Adding item to truck:', selectedAddItem.partNumber, 'Build to:', addItemBuildTo);
+    
+    // Reset form
+    setSelectedAddItem(null);
+    setAddItemSearch('');
+    setAddItemBuildTo(1);
   };
 
   // Get unique values for filter dropdowns
@@ -826,27 +867,48 @@ const Inventory: React.FC = () => {
                 <Typography variant="h6">
                   Add Item to Truck
                 </Typography>
-                <FormControl sx={{ minWidth: 200 }}>
-                  <InputLabel>Select Item</InputLabel>
-                  <Select
-                    label="Select Item"
-                    size="small"
-                  >
-                    {inventoryData.map((item) => (
-                      <MenuItem key={item.id} value={item.id}>
-                        {item.partNumber} - {item.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                <TextField
+                  placeholder="Search part number or name..."
+                  size="small"
+                  sx={{ minWidth: 300 }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon />
+                      </InputAdornment>
+                    ),
+                  }}
+                  value={addItemSearch}
+                  onChange={(e) => handleAddItemSearch(e.target.value)}
+                />
+                {showAddItemResults && (
+                  <Box sx={{ mt: 1, maxHeight: 200, overflowY: 'auto', border: 1, borderColor: 'divider', borderRadius: 1 }}>
+                    {filteredAddItems.length > 0 ? (
+                      filteredAddItems.map((item) => (
+                        <MenuItem
+                          key={item.id}
+                          onClick={() => handleSelectAddItem(item)}
+                          sx={{ p: 1, cursor: 'pointer' }}
+                        >
+                          <Typography variant="body2" fontWeight="medium">{item.partNumber} - {item.name}</Typography>
+                          <Typography variant="caption" color="text.secondary">{item.manufacturer}</Typography>
+                        </MenuItem>
+                      ))
+                    ) : (
+                      <MenuItem disabled sx={{ p: 1 }}>No items found</MenuItem>
+                    )}
+                  </Box>
+                )}
                 <TextField
                   type="number"
                   label="Build To"
                   size="small"
                   sx={{ width: 100 }}
                   inputProps={{ min: 0 }}
+                  value={addItemBuildTo}
+                  onChange={(e) => setAddItemBuildTo(Number(e.target.value))}
                 />
-                <Button variant="contained" size="small">
+                <Button variant="contained" size="small" onClick={handleAddItemToTruck}>
                   Add Item
                 </Button>
               </Box>
