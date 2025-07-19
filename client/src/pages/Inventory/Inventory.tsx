@@ -215,7 +215,7 @@ const mockTrucks: ServiceTruck[] = [
 
 const Inventory: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
-  const [inventoryData, setInventoryData] = useState<InventoryItem[]>(mockInventoryData);
+  const [inventoryData] = useState<InventoryItem[]>(mockInventoryData);
   const [trucks, setTrucks] = useState<ServiceTruck[]>(mockTrucks);
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogType, setDialogType] = useState<'add' | 'edit' | 'move' | 'adjust' | 'addTruck' | 'editTruck' | 'truckSettings'>('add');
