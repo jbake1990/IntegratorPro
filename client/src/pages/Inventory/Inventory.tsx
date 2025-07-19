@@ -352,9 +352,7 @@ const Inventory: React.FC = () => {
   const [newQuoteName, setNewQuoteName] = useState('');
   const [showAddQuoteDialog, setShowAddQuoteDialog] = useState(false);
   
-  // Part editing state
-  const [editingPartQuantities, setEditingPartQuantities] = useState<{[key: string]: number}>({});
-  const [selectedQuoteForEdit, setSelectedQuoteForEdit] = useState<Quote | null>(null);
+
   
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -620,16 +618,15 @@ const Inventory: React.FC = () => {
         if (quote.id === quoteId) {
           return {
             ...quote,
-            parts: quote.parts.map(part => {
-              if (part.itemId === partId) {
-                const totalCost = part.cost * newQuantity;
-                return {
-                  ...part,
-                  quantity: newQuantity
-                };
-              }
-              return part;
-            })
+                         parts: quote.parts.map(part => {
+               if (part.itemId === partId) {
+                 return {
+                   ...part,
+                   quantity: newQuantity
+                 };
+               }
+               return part;
+             })
           };
         }
         return quote;
@@ -694,41 +691,7 @@ const Inventory: React.FC = () => {
     setSelectedJob(updatedJob);
   };
 
-  const handleAddPartToQuote = (quoteId: string, part: InventoryItem) => {
-    if (!selectedJob) return;
 
-    const newJobPart: JobPart = {
-      itemId: part.id,
-      partNumber: part.partNumber,
-      name: part.name,
-      quantity: 1,
-      cost: part.cost,
-      manufacturer: part.manufacturer
-    };
-
-    const updatedJob = {
-      ...selectedJob,
-      quotes: selectedJob.quotes.map(quote => {
-        if (quote.id === quoteId) {
-          const updatedParts = [...quote.parts, newJobPart];
-          const totalValue = updatedParts.reduce((sum, part) => sum + (part.cost * part.quantity), 0);
-          return { ...quote, parts: updatedParts, totalValue };
-        }
-        return quote;
-      })
-    };
-
-    // Recalculate total job value
-    updatedJob.totalValue = updatedJob.quotes.reduce((sum, quote) => sum + quote.totalValue, 0);
-
-    setJobs(prevJobs => 
-      prevJobs.map(job => 
-        job.id === selectedJob.id ? updatedJob : job
-      )
-    );
-
-    setSelectedJob(updatedJob);
-  };
 
   const getWarehouseStockForPart = (partNumber: string) => {
     const inventoryItem = inventoryData.find(item => item.partNumber === partNumber);
@@ -749,7 +712,6 @@ const Inventory: React.FC = () => {
   };
 
   const handleEditQuote = (quote: Quote) => {
-    setSelectedQuoteForEdit(quote);
     // TODO: Open quote edit dialog for adding parts
     console.log('Edit quote:', quote.id);
   };
