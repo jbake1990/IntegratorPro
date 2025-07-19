@@ -749,6 +749,245 @@ const Inventory: React.FC = () => {
     </Box>
   );
 
+  const renderTruckSettingsDialog = () => {
+    if (!selectedTruck) return null;
+
+    return (
+      <Dialog open={openDialog && dialogType === 'truckSettings'} onClose={handleCloseDialog} maxWidth="md" fullWidth>
+        <DialogTitle>
+          Truck Settings - {selectedTruck.name}
+        </DialogTitle>
+        <DialogContent>
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
+              <Typography variant="h6" gutterBottom>
+                Truck Information
+              </Typography>
+              <TextField
+                fullWidth
+                label="Truck Name"
+                defaultValue={selectedTruck.name}
+                margin="normal"
+              />
+              <TextField
+                fullWidth
+                label="Truck Number"
+                defaultValue={selectedTruck.number}
+                margin="normal"
+              />
+              <TextField
+                fullWidth
+                label="Driver"
+                defaultValue={selectedTruck.driver}
+                margin="normal"
+              />
+              <TextField
+                fullWidth
+                label="Location"
+                defaultValue={selectedTruck.location}
+                margin="normal"
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="h6" gutterBottom>
+                Inventory Summary
+              </Typography>
+              <Box sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}>
+                <Typography variant="body2" gutterBottom>
+                  Total Items: {selectedTruck.inventory.length}
+                </Typography>
+                <Typography variant="body2" gutterBottom>
+                  Items Below Build-to: {selectedTruck.inventory.filter(item => item.actualCount < item.buildToCount).length}
+                </Typography>
+                <Typography variant="body2" gutterBottom>
+                  Items at Build-to: {selectedTruck.inventory.filter(item => item.actualCount === item.buildToCount).length}
+                </Typography>
+                <Typography variant="body2">
+                  Items Above Build-to: {selectedTruck.inventory.filter(item => item.actualCount > item.buildToCount).length}
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12}>
+              <Typography variant="h6" gutterBottom>
+                Inventory & Build-to Numbers
+              </Typography>
+              <TableContainer component={Paper} sx={{ maxHeight: 300 }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Part Number</TableCell>
+                      <TableCell>Name</TableCell>
+                      <TableCell>Manufacturer</TableCell>
+                      <TableCell align="right">Actual Count</TableCell>
+                      <TableCell align="right">Build To</TableCell>
+                      <TableCell align="center">Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {selectedTruck.inventory.map((item) => (
+                      <TableRow key={item.itemId}>
+                        <TableCell>{item.partNumber}</TableCell>
+                        <TableCell>{item.name}</TableCell>
+                        <TableCell>{item.manufacturer}</TableCell>
+                        <TableCell align="right">
+                          <Typography variant="body2" fontWeight="medium">
+                            {item.actualCount}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <TextField
+                            type="number"
+                            size="small"
+                            defaultValue={item.buildToCount}
+                            sx={{ width: 80 }}
+                            inputProps={{ min: 0 }}
+                          />
+                        </TableCell>
+                        <TableCell align="center">
+                          <IconButton size="small" color="error">
+                            <DeleteIcon />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Grid>
+            <Grid item xs={12}>
+              <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                <Typography variant="h6">
+                  Add Item to Truck
+                </Typography>
+                <FormControl sx={{ minWidth: 200 }}>
+                  <InputLabel>Select Item</InputLabel>
+                  <Select
+                    label="Select Item"
+                    size="small"
+                  >
+                    {inventoryData.map((item) => (
+                      <MenuItem key={item.id} value={item.id}>
+                        {item.partNumber} - {item.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <TextField
+                  type="number"
+                  label="Build To"
+                  size="small"
+                  sx={{ width: 100 }}
+                  inputProps={{ min: 0 }}
+                />
+                <Button variant="contained" size="small">
+                  Add Item
+                </Button>
+              </Box>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog}>Cancel</Button>
+          <Button variant="contained" onClick={handleCloseDialog}>
+            Save Settings
+          </Button>
+        </DialogActions>
+      </Dialog>
+    );
+  };
+
+  const renderAddTruckDialog = () => (
+    <Dialog open={openDialog && dialogType === 'addTruck'} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+      <DialogTitle>Add New Service Truck</DialogTitle>
+      <DialogContent>
+        <Grid container spacing={2} sx={{ mt: 1 }}>
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              label="Truck Name"
+              placeholder="e.g., Service Truck 3"
+            />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Truck Number"
+              placeholder="e.g., ST-003"
+            />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Driver"
+              placeholder="e.g., Sarah Wilson"
+            />
+          </Grid>
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              label="Location"
+              placeholder="e.g., Westside Area"
+            />
+          </Grid>
+        </Grid>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleCloseDialog}>Cancel</Button>
+        <Button variant="contained" onClick={handleCloseDialog}>
+          Add Truck
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+
+  const renderEditTruckDialog = () => {
+    if (!selectedTruck) return null;
+
+    return (
+      <Dialog open={openDialog && dialogType === 'editTruck'} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+        <DialogTitle>Edit Service Truck</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Truck Name"
+                defaultValue={selectedTruck.name}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Truck Number"
+                defaultValue={selectedTruck.number}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Driver"
+                defaultValue={selectedTruck.driver}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Location"
+                defaultValue={selectedTruck.location}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog}>Cancel</Button>
+          <Button variant="contained" onClick={handleCloseDialog}>
+            Save Changes
+          </Button>
+        </DialogActions>
+      </Dialog>
+    );
+  };
+
   return (
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -810,15 +1049,12 @@ const Inventory: React.FC = () => {
       </Menu>
 
       {/* Dialog for Add/Edit/Move/Adjust */}
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+      <Dialog open={openDialog && ['add', 'edit', 'move', 'adjust'].includes(dialogType)} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
         <DialogTitle>
           {dialogType === 'add' && 'Add New Inventory Item'}
           {dialogType === 'edit' && 'Edit Inventory Item'}
           {dialogType === 'move' && 'Move Stock'}
           {dialogType === 'adjust' && 'Adjust Stock Count'}
-          {dialogType === 'addTruck' && 'Add New Service Truck'}
-          {dialogType === 'editTruck' && 'Edit Service Truck'}
-          {dialogType === 'truckSettings' && 'Truck Settings'}
         </DialogTitle>
         <DialogContent>
           <Alert severity="info" sx={{ mb: 2 }}>
@@ -829,9 +1065,6 @@ const Inventory: React.FC = () => {
             {dialogType === 'edit' && 'Edit item details and pricing'}
             {dialogType === 'move' && 'Move stock between warehouse, trucks, and allocations'}
             {dialogType === 'adjust' && 'Manually adjust stock counts'}
-            {dialogType === 'addTruck' && 'Add a new service truck to your fleet'}
-            {dialogType === 'editTruck' && 'Modify existing service truck details'}
-            {dialogType === 'truckSettings' && 'Configure settings for the selected service truck'}
           </Typography>
         </DialogContent>
         <DialogActions>
@@ -841,12 +1074,12 @@ const Inventory: React.FC = () => {
             {dialogType === 'edit' && 'Save Changes'}
             {dialogType === 'move' && 'Move Stock'}
             {dialogType === 'adjust' && 'Adjust Count'}
-            {dialogType === 'addTruck' && 'Add Truck'}
-            {dialogType === 'editTruck' && 'Save Truck Changes'}
-            {dialogType === 'truckSettings' && 'Save Settings'}
           </Button>
         </DialogActions>
       </Dialog>
+      {renderTruckSettingsDialog()}
+      {renderAddTruckDialog()}
+      {renderEditTruckDialog()}
     </Box>
   );
 };
