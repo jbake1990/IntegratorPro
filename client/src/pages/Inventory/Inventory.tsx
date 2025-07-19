@@ -42,7 +42,8 @@ import {
   Search as SearchIcon,
   FilterList as FilterIcon,
   Clear as ClearIcon,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  Receipt as ReceiptIcon
 } from '@mui/icons-material';
 
 interface InventoryItem {
@@ -342,12 +343,16 @@ const Inventory: React.FC = () => {
   
   // Job settings state
   const [editingJobCustomerName, setEditingJobCustomerName] = useState('');
-  const [editingJobNumber, setEditingJobNumber] = useState('');
   const [editingJobStatus, setEditingJobStatus] = useState<'Active' | 'Completed' | 'Cancelled'>('Active');
   
   // Add job state
   const [newJobCustomerName, setNewJobCustomerName] = useState('');
-  const [newJobNumber, setNewJobNumber] = useState('');
+  
+  // Quote management state
+  const [editingQuotes, setEditingQuotes] = useState<Quote[]>([]);
+  const [newQuoteName, setNewQuoteName] = useState('');
+  const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
+  const [showAddQuoteDialog, setShowAddQuoteDialog] = useState(false);
   
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -507,12 +512,12 @@ const Inventory: React.FC = () => {
   };
 
   const handleAddJob = () => {
-    if (!newJobCustomerName.trim() || !newJobNumber.trim()) return;
+    if (!newJobCustomerName.trim()) return;
 
     const newJob: KittedJob = {
       id: `job-${Date.now()}`,
       customerName: newJobCustomerName.trim(),
-      jobNumber: newJobNumber.trim(),
+      jobNumber: `JOB-${Date.now()}`,
       status: 'Active',
       quotes: [],
       totalValue: 0,
@@ -520,14 +525,17 @@ const Inventory: React.FC = () => {
     };
 
     setJobs(prevJobs => [...prevJobs, newJob]);
+    setSelectedJob(newJob); // Select the new job
+    setEditingJobCustomerName(newJob.customerName);
+    setEditingJobStatus(newJob.status);
+    setEditingQuotes([]);
+    setOpenDialog(true);
+    setDialogType('jobSettings');
     setNewJobCustomerName('');
-    setNewJobNumber('');
-    handleCloseDialog();
   };
 
   const handleOpenAddJob = () => {
     setNewJobCustomerName('');
-    setNewJobNumber('');
     setOpenDialog(true);
     setDialogType('addJob');
   };
@@ -535,7 +543,6 @@ const Inventory: React.FC = () => {
   const handleJobClick = (job: KittedJob) => {
     setSelectedJob(job);
     setEditingJobCustomerName(job.customerName);
-    setEditingJobNumber(job.jobNumber);
     setEditingJobStatus(job.status);
     setOpenDialog(true);
     setDialogType('jobSettings');
@@ -547,7 +554,6 @@ const Inventory: React.FC = () => {
     const updatedJob = {
       ...selectedJob,
       customerName: editingJobCustomerName,
-      jobNumber: editingJobNumber,
       status: editingJobStatus
     };
 
@@ -559,6 +565,49 @@ const Inventory: React.FC = () => {
 
     setSelectedJob(updatedJob);
     handleCloseDialog();
+  };
+
+  const handleAddQuote = () => {
+    if (!newQuoteName.trim() || !selectedJob) return;
+
+    const newQuote: Quote = {
+      id: `quote-${Date.now()}`,
+      name: newQuoteName.trim(),
+      parts: [],
+      totalValue: 0
+    };
+
+    const updatedJob = {
+      ...selectedJob,
+      quotes: [...selectedJob.quotes, newQuote]
+    };
+
+    setJobs(prevJobs => 
+      prevJobs.map(job => 
+        job.id === selectedJob.id ? updatedJob : job
+      )
+    );
+
+    setSelectedJob(updatedJob);
+    setNewQuoteName('');
+    setShowAddQuoteDialog(false);
+  };
+
+  const handleRemoveQuote = (quoteId: string) => {
+    if (!selectedJob) return;
+
+    const updatedJob = {
+      ...selectedJob,
+      quotes: selectedJob.quotes.filter(quote => quote.id !== quoteId)
+    };
+
+    setJobs(prevJobs => 
+      prevJobs.map(job => 
+        job.id === selectedJob.id ? updatedJob : job
+      )
+    );
+
+    setSelectedJob(updatedJob);
   };
 
   // Get unique values for filter dropdowns
@@ -1186,14 +1235,7 @@ const Inventory: React.FC = () => {
           onChange={(e) => setNewJobCustomerName(e.target.value)}
           placeholder="Enter customer name"
         />
-        <TextField
-          fullWidth
-          label="Job Number"
-          value={newJobNumber}
-          margin="normal"
-          onChange={(e) => setNewJobNumber(e.target.value)}
-          placeholder="Enter job number"
-        />
+
       </DialogContent>
       <DialogActions>
         <Button onClick={handleCloseDialog}>Cancel</Button>
@@ -1206,7 +1248,7 @@ const Inventory: React.FC = () => {
     if (!selectedJob) return null;
 
     return (
-      <Dialog open={openDialog && dialogType === 'jobSettings'} onClose={handleCloseDialog} maxWidth="md" fullWidth>
+      <Dialog open={openDialog && dialogType === 'jobSettings'} onClose={handleCloseDialog} maxWidth="lg" fullWidth>
         <DialogTitle>
           Job Settings - {selectedJob.customerName}
         </DialogTitle>
@@ -1222,13 +1264,6 @@ const Inventory: React.FC = () => {
                 value={editingJobCustomerName}
                 margin="normal"
                 onChange={(e) => setEditingJobCustomerName(e.target.value)}
-              />
-              <TextField
-                fullWidth
-                label="Job Number"
-                value={editingJobNumber}
-                margin="normal"
-                onChange={(e) => setEditingJobNumber(e.target.value)}
               />
               <FormControl fullWidth margin="normal">
                 <InputLabel>Status</InputLabel>
@@ -1263,21 +1298,125 @@ const Inventory: React.FC = () => {
               </Box>
             </Grid>
             <Grid item xs={12}>
-              <Typography variant="h6" gutterBottom>
-                Quotes & Parts
-              </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6">
+                  Quotes & Parts
+                </Typography>
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() => setShowAddQuoteDialog(true)}
+                >
+                  Add Quote
+                </Button>
+              </Box>
               {selectedJob.quotes.map((quote) => (
                 <Card key={quote.id} sx={{ mb: 2 }}>
                   <CardContent>
-                    <Typography variant="h6" gutterBottom>
-                      {quote.name}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Value: ${quote.totalValue.toFixed(2)}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Parts: {quote.parts.length}
-                    </Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                      <Box>
+                        <Typography variant="h6" gutterBottom>
+                          {quote.name}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          Value: ${quote.totalValue.toFixed(2)}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Parts: {quote.parts.length}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<EditIcon />}
+                          onClick={() => {
+                            setSelectedQuote(quote);
+                            // TODO: Open quote edit dialog
+                          }}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="contained"
+                          startIcon={<ReceiptIcon />}
+                          onClick={() => {
+                            // TODO: Send to billing
+                            console.log('Send quote to billing:', quote.id);
+                          }}
+                        >
+                          Send to Billing
+                        </Button>
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => handleRemoveQuote(quote.id)}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Box>
+                    </Box>
+                    <TableContainer component={Paper} sx={{ maxHeight: 200 }}>
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>Part Number</TableCell>
+                            <TableCell>Name</TableCell>
+                            <TableCell align="right">Quantity</TableCell>
+                            <TableCell align="right">Cost</TableCell>
+                            <TableCell align="center">Actions</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {quote.parts.map((part) => (
+                            <TableRow key={part.itemId}>
+                              <TableCell>{part.partNumber}</TableCell>
+                              <TableCell>{part.name}</TableCell>
+                              <TableCell align="right">{part.quantity}</TableCell>
+                              <TableCell align="right">${part.cost.toFixed(2)}</TableCell>
+                              <TableCell align="center">
+                                <Box sx={{ display: 'flex', gap: 1 }}>
+                                  <IconButton
+                                    size="small"
+                                    color="primary"
+                                    title="Add to Warehouse"
+                                    onClick={() => {
+                                      // TODO: Add part to warehouse
+                                      console.log('Add to warehouse:', part.partNumber);
+                                    }}
+                                  >
+                                    <AddIcon />
+                                  </IconButton>
+                                  <IconButton
+                                    size="small"
+                                    color="secondary"
+                                    title="Add to Truck"
+                                    onClick={() => {
+                                      // TODO: Add part to truck
+                                      console.log('Add to truck:', part.partNumber);
+                                    }}
+                                  >
+                                    <TruckIcon />
+                                  </IconButton>
+                                  <IconButton
+                                    size="small"
+                                    color="error"
+                                    title="Remove Part"
+                                    onClick={() => {
+                                      // TODO: Remove part from quote
+                                      console.log('Remove part:', part.partNumber);
+                                    }}
+                                  >
+                                    <DeleteIcon />
+                                  </IconButton>
+                                </Box>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
                   </CardContent>
                 </Card>
               ))}
@@ -1291,6 +1430,26 @@ const Inventory: React.FC = () => {
       </Dialog>
     );
   };
+
+  const renderAddQuoteDialog = () => (
+    <Dialog open={showAddQuoteDialog} onClose={() => setShowAddQuoteDialog(false)} maxWidth="sm" fullWidth>
+      <DialogTitle>Add New Quote</DialogTitle>
+      <DialogContent>
+        <TextField
+          fullWidth
+          label="Quote Name"
+          value={newQuoteName}
+          margin="normal"
+          onChange={(e) => setNewQuoteName(e.target.value)}
+          placeholder="Enter quote name"
+        />
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setShowAddQuoteDialog(false)}>Cancel</Button>
+        <Button onClick={handleAddQuote} variant="contained">Add Quote</Button>
+      </DialogActions>
+    </Dialog>
+  );
 
   return (
     <Box sx={{ p: 3 }}>
@@ -1386,6 +1545,7 @@ const Inventory: React.FC = () => {
       {renderEditTruckDialog()}
       {renderAddJobDialog()}
       {renderJobSettingsDialog()}
+      {renderAddQuoteDialog()}
     </Box>
   );
 };
