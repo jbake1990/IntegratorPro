@@ -42,10 +42,7 @@ import {
   Search as SearchIcon,
   FilterList as FilterIcon,
   Clear as ClearIcon,
-  DirectionsCar as CarIcon,
-  Settings as SettingsIcon,
-  ArrowUpward as MoveToTruckIcon,
-  ArrowDownward as MoveToWarehouseIcon
+  Settings as SettingsIcon
 } from '@mui/icons-material';
 
 interface InventoryItem {
@@ -288,10 +285,7 @@ const Inventory: React.FC = () => {
     setTruckView('inventory');
   };
 
-  const handleBackToList = () => {
-    setTruckView('list');
-    setSelectedTruck(null);
-  };
+
 
   const handleAddItemSearch = (searchTerm: string) => {
     setAddItemSearch(searchTerm);
@@ -399,74 +393,7 @@ const Inventory: React.FC = () => {
     setDialogType('addTruck');
   };
 
-  const handleMoveToTruck = (truck: ServiceTruck, item: TruckInventory) => {
-    const warehouseItem = inventoryData.find(inv => inv.partNumber === item.partNumber);
-    if (!warehouseItem || warehouseItem.warehouseStock === 0) return;
 
-    // Update warehouse stock
-    const updatedInventoryData = inventoryData.map(inv => 
-      inv.partNumber === item.partNumber 
-        ? { ...inv, warehouseStock: inv.warehouseStock - 1 }
-        : inv
-    );
-
-    // Update truck inventory
-    const updatedTruck = {
-      ...truck,
-      inventory: truck.inventory.map(truckItem => 
-        truckItem.itemId === item.itemId
-          ? { ...truckItem, actualCount: truckItem.actualCount + 1 }
-          : truckItem
-      )
-    };
-
-    // Update trucks array
-    setTrucks(prevTrucks => 
-      prevTrucks.map(t => t.id === truck.id ? updatedTruck : t)
-    );
-
-    // Update selected truck if it's currently selected
-    if (selectedTruck?.id === truck.id) {
-      setSelectedTruck(updatedTruck);
-    }
-
-    // Update inventory data
-    setInventoryData(updatedInventoryData);
-  };
-
-  const handleMoveToWarehouse = (truck: ServiceTruck, item: TruckInventory) => {
-    if (item.actualCount === 0) return;
-
-    // Update warehouse stock
-    const updatedInventoryData = inventoryData.map(inv => 
-      inv.partNumber === item.partNumber 
-        ? { ...inv, warehouseStock: inv.warehouseStock + 1 }
-        : inv
-    );
-
-    // Update truck inventory
-    const updatedTruck = {
-      ...truck,
-      inventory: truck.inventory.map(truckItem => 
-        truckItem.itemId === item.itemId
-          ? { ...truckItem, actualCount: truckItem.actualCount - 1 }
-          : truckItem
-      )
-    };
-
-    // Update trucks array
-    setTrucks(prevTrucks => 
-      prevTrucks.map(t => t.id === truck.id ? updatedTruck : t)
-    );
-
-    // Update selected truck if it's currently selected
-    if (selectedTruck?.id === truck.id) {
-      setSelectedTruck(updatedTruck);
-    }
-
-    // Update inventory data
-    setInventoryData(updatedInventoryData);
-  };
 
   // Get unique values for filter dropdowns
   const categories = useMemo(() => Array.from(new Set(inventoryData.map(item => item.category))), [inventoryData]);
