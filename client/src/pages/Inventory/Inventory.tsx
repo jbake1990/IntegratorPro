@@ -216,7 +216,7 @@ const mockTrucks: ServiceTruck[] = [
 
 const Inventory: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
-  const [inventoryData] = useState<InventoryItem[]>(mockInventoryData);
+  const [inventoryData, setInventoryData] = useState<InventoryItem[]>(mockInventoryData);
   const [trucks, setTrucks] = useState<ServiceTruck[]>(mockTrucks);
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogType, setDialogType] = useState<'add' | 'edit' | 'move' | 'adjust' | 'addTruck' | 'editTruck' | 'truckSettings'>('add');
@@ -369,6 +369,75 @@ const Inventory: React.FC = () => {
       ...prev,
       [itemId]: newValue
     }));
+  };
+
+  const handleMoveToTruck = (truck: ServiceTruck, item: TruckInventory) => {
+    const warehouseItem = inventoryData.find(inv => inv.partNumber === item.partNumber);
+    if (!warehouseItem || warehouseItem.warehouseStock === 0) return;
+
+    // Update warehouse stock
+    const updatedInventoryData = inventoryData.map(inv => 
+      inv.partNumber === item.partNumber 
+        ? { ...inv, warehouseStock: inv.warehouseStock - 1 }
+        : inv
+    );
+
+    // Update truck inventory
+    const updatedTruck = {
+      ...truck,
+      inventory: truck.inventory.map(truckItem => 
+        truckItem.itemId === item.itemId
+          ? { ...truckItem, actualCount: truckItem.actualCount + 1 }
+          : truckItem
+      )
+    };
+
+    // Update trucks array
+    setTrucks(prevTrucks => 
+      prevTrucks.map(t => t.id === truck.id ? updatedTruck : t)
+    );
+
+    // Update selected truck if it's currently selected
+    if (selectedTruck?.id === truck.id) {
+      setSelectedTruck(updatedTruck);
+    }
+
+    // Update inventory data
+    setInventoryData(updatedInventoryData);
+  };
+
+  const handleMoveToWarehouse = (truck: ServiceTruck, item: TruckInventory) => {
+    if (item.actualCount === 0) return;
+
+    // Update warehouse stock
+    const updatedInventoryData = inventoryData.map(inv => 
+      inv.partNumber === item.partNumber 
+        ? { ...inv, warehouseStock: inv.warehouseStock + 1 }
+        : inv
+    );
+
+    // Update truck inventory
+    const updatedTruck = {
+      ...truck,
+      inventory: truck.inventory.map(truckItem => 
+        truckItem.itemId === item.itemId
+          ? { ...truckItem, actualCount: truckItem.actualCount - 1 }
+          : truckItem
+      )
+    };
+
+    // Update trucks array
+    setTrucks(prevTrucks => 
+      prevTrucks.map(t => t.id === truck.id ? updatedTruck : t)
+    );
+
+    // Update selected truck if it's currently selected
+    if (selectedTruck?.id === truck.id) {
+      setSelectedTruck(updatedTruck);
+    }
+
+    // Update inventory data
+    setInventoryData(updatedInventoryData);
   };
 
   // Get unique values for filter dropdowns
@@ -729,6 +798,7 @@ const Inventory: React.FC = () => {
                           color="primary"
                           title="Move from Warehouse to Truck"
                           disabled={!warehouseItem || warehouseItem.warehouseStock === 0}
+                          onClick={() => handleMoveToTruck(selectedTruck!, item)}
                         >
                           <MoveToTruckIcon />
                         </IconButton>
@@ -737,6 +807,7 @@ const Inventory: React.FC = () => {
                           color="secondary"
                           title="Move from Truck to Warehouse"
                           disabled={item.actualCount === 0}
+                          onClick={() => handleMoveToWarehouse(selectedTruck!, item)}
                         >
                           <MoveToWarehouseIcon />
                         </IconButton>
