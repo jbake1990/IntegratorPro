@@ -1197,65 +1197,124 @@ const Inventory: React.FC = () => {
       quantities[item.id] = 0; // Start with 0 received
     });
     setReceivingQuantities(quantities);
+    console.log('Initialized receiving quantities for PO:', po.poNumber, quantities);
   };
 
   const handleReceivingQuantityChange = (itemId: string, quantity: number) => {
-    setReceivingQuantities(prev => ({
-      ...prev,
-      [itemId]: quantity
-    }));
+    setReceivingQuantities(prev => {
+      const updated = {
+        ...prev,
+        [itemId]: quantity
+      };
+      console.log('Updated receiving quantities:', updated);
+      return updated;
+    });
   };
 
   const handleProcessReceiving = () => {
     if (!editingPO) return;
     
-    // Update inventory with received quantities
-    const updatedInventoryData = inventoryData.map(invItem => {
-      let additionalStock = 0;
+    console.log('Processing receiving for PO:', editingPO.poNumber);
+    console.log('Receiving quantities:', receivingQuantities);
+    
+    // Start with current inventory data
+    let updatedInventoryData = [...inventoryData];
+    const newInventoryItems: InventoryItem[] = [];
+    
+    // Process each PO item
+    editingPO.items.forEach(poItem => {
+      const receivedQty = receivingQuantities[poItem.id] || 0;
+      console.log(`Processing ${poItem.partNumber}: received ${receivedQty} of ${poItem.quantity}`);
       
-      editingPO.items.forEach(poItem => {
-        if (poItem.partNumber === invItem.partNumber) {
-          additionalStock += receivingQuantities[poItem.id] || 0;
+      if (receivedQty > 0) {
+        // Find existing inventory item
+        const existingItemIndex = updatedInventoryData.findIndex(
+          invItem => invItem.partNumber === poItem.partNumber
+        );
+        
+        if (existingItemIndex >= 0) {
+          // Update existing inventory item
+          const existingItem = updatedInventoryData[existingItemIndex];
+          const newWarehouseStock = existingItem.warehouseStock + receivedQty;
+          const newTotalStock = existingItem.totalStock + receivedQty;
+          
+          updatedInventoryData[existingItemIndex] = {
+            ...existingItem,
+            warehouseStock: newWarehouseStock,
+            totalStock: newTotalStock,
+            status: newWarehouseStock > existingItem.minStock ? 'In Stock' as const : 'Low Stock' as const
+          };
+          
+          console.log(`Updated existing item ${poItem.partNumber}: +${receivedQty} stock`);
+        } else {
+          // Create new inventory item for items that don't exist
+          const newInventoryItem: InventoryItem = {
+            id: `inv-${Date.now()}-${Math.random()}`,
+            sku: `SKU-${poItem.partNumber}`,
+            partNumber: poItem.partNumber,
+            name: poItem.description,
+            description: poItem.description,
+            manufacturer: 'Unknown', // Could be enhanced to capture this from PO
+            tags: [],
+            category: 'General',
+            vendor: editingPO.vendor,
+            warehouseStock: receivedQty,
+            truckStock: 0,
+            allocatedStock: 0,
+            totalStock: receivedQty,
+            minStock: 5, // Default minimum
+            maxStock: 100, // Default maximum
+            cost: poItem.unitCost,
+            sellingPrice: poItem.unitCost * 1.5, // 50% markup
+            status: receivedQty > 5 ? 'In Stock' as const : 'Low Stock' as const
+          };
+          
+          newInventoryItems.push(newInventoryItem);
+          console.log(`Created new inventory item: ${poItem.partNumber} with ${receivedQty} stock`);
         }
-      });
-
-      if (additionalStock > 0) {
-        return {
-          ...invItem,
-          warehouseStock: invItem.warehouseStock + additionalStock,
-          totalStock: invItem.totalStock + additionalStock,
-          status: (invItem.warehouseStock + additionalStock) > invItem.minStock ? 'In Stock' as const : 'Low Stock' as const
-        };
       }
-      return invItem;
     });
-
+    
+    // Add new items to inventory
+    if (newInventoryItems.length > 0) {
+      updatedInventoryData = [...updatedInventoryData, ...newInventoryItems];
+      console.log(`Added ${newInventoryItems.length} new inventory items`);
+    }
+    
+    // Update inventory state
     setInventoryData(updatedInventoryData);
-
-    // Determine if PO is fully received or partial
-    const isFullyReceived = editingPO.items.every(item => 
-      (receivingQuantities[item.id] || 0) >= item.quantity
-    );
-
-    const newStatus = isFullyReceived ? 'received' : editingPO.status; // Keep as open if partial
-
+    
+    // Determine if PO is fully received
+    const isFullyReceived = editingPO.items.every(item => {
+      const receivedQty = receivingQuantities[item.id] || 0;
+      const isComplete = receivedQty >= item.quantity;
+      console.log(`Item ${item.partNumber}: received ${receivedQty}/${item.quantity} = ${isComplete ? 'COMPLETE' : 'PARTIAL'}`);
+      return isComplete;
+    });
+    
+    console.log('PO fully received?', isFullyReceived);
+    
+    // Update PO status
+    const newStatus = isFullyReceived ? 'received' : editingPO.status;
+    console.log('New PO status:', newStatus);
+    
     const updatedPO = {
       ...editingPO,
       status: newStatus
     };
 
-    setPurchaseOrders(prev => 
-      prev.map(po => po.id === editingPO.id ? updatedPO : po)
-    );
+    setPurchaseOrders(prev => {
+      const updated = prev.map(po => po.id === editingPO.id ? updatedPO : po);
+      console.log('Updated PO list:', updated.map(p => ({ number: p.poNumber, status: p.status })));
+      return updated;
+    });
 
-    // If fully received, could add to recent orders here
-    if (isFullyReceived) {
-      // In real app, add to recent orders
-    }
-
+    // Close dialog and reset state
     setOpenDialog(false);
     setEditingPO(null);
     setReceivingQuantities({});
+    
+    console.log('Receiving process completed');
   };
 
   // Get unique values for filter dropdowns
@@ -2329,10 +2388,46 @@ const Inventory: React.FC = () => {
                         </TableBody>
                       </Table>
                     </TableContainer>
-                    <Box sx={{ mt: 2, textAlign: 'right' }}>
-                      <Typography variant="h6">
-                        Total: {formatCurrency(editingPO.totalAmount)}
-                      </Typography>
+                    <Box sx={{ mt: 2 }}>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} md={6}>
+                          <Box sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}>
+                            <Typography variant="subtitle2" gutterBottom>
+                              Receiving Summary
+                            </Typography>
+                            {editingPO.items.map(item => {
+                              const receivedQty = receivingQuantities[item.id] || 0;
+                              const isComplete = receivedQty >= item.quantity;
+                              return (
+                                <Box key={item.id} sx={{ display: 'flex', justifyContent: 'space-between', py: 0.5 }}>
+                                  <Typography variant="body2">
+                                    {item.partNumber}:
+                                  </Typography>
+                                  <Typography 
+                                    variant="body2" 
+                                    color={isComplete ? 'success.main' : receivedQty > 0 ? 'warning.main' : 'text.secondary'}
+                                  >
+                                    {receivedQty}/{item.quantity} {isComplete ? '✓' : receivedQty > 0 ? '⚠' : '○'}
+                                  </Typography>
+                                </Box>
+                              );
+                            })}
+                            <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 1, mt: 1 }}>
+                              <Typography variant="body2" fontWeight="medium">
+                                Status: {editingPO.items.every(item => (receivingQuantities[item.id] || 0) >= item.quantity) ? 
+                                  'Ready for Complete Receiving' : 'Partial Receiving'}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          <Box sx={{ textAlign: 'right' }}>
+                            <Typography variant="h6">
+                              Total Order Value: {formatCurrency(editingPO.totalAmount)}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      </Grid>
                     </Box>
                   </Box>
                 </Box>
