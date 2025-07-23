@@ -1216,7 +1216,7 @@ const Inventory: React.FC = () => {
   const renderTruckSettingsDialog = () => {
     if (!selectedTruck) return null;
 
-    return (
+  return (
       <Dialog open={openDialog && dialogType === 'truckSettings'} onClose={handleCloseDialog} maxWidth="md" fullWidth>
         <DialogTitle>
           Truck Settings - {selectedTruck.name}
@@ -1508,7 +1508,7 @@ const Inventory: React.FC = () => {
                 <Card key={quote.id} sx={{ mb: 2 }}>
                   <CardContent>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                      <Box>
+    <Box>
                         <Typography variant="h6" gutterBottom>
                           {quote.name}
                         </Typography>
@@ -1650,15 +1650,17 @@ const Inventory: React.FC = () => {
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">
-          Inventory Management
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog('add')}
-        >
-          Add New Item
-        </Button>
+        Inventory Management
+      </Typography>
+        {activeTab === 0 && (
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => handleOpenDialog('add')}
+          >
+            Add New Item
+          </Button>
+        )}
       </Box>
 
       <Tabs value={activeTab} onChange={handleTabChange} sx={{ mb: 3 }}>
@@ -1723,7 +1725,7 @@ const Inventory: React.FC = () => {
             {dialogType === 'edit' && 'Edit item details and pricing'}
             {dialogType === 'move' && 'Move stock between warehouse, trucks, and allocations'}
             {dialogType === 'adjust' && 'Manually adjust stock counts'}
-          </Typography>
+      </Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>Cancel</Button>
