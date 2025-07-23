@@ -969,16 +969,47 @@ const Inventory: React.FC = () => {
   }, [calculateAndUpdateAllocatedStock]);
 
   const handleSendToBilling = (quote: Quote) => {
-    // In a real app, this would create an invoice from the quote
-    console.log('Creating invoice from quote:', quote.id);
-    console.log('Quote details:', {
-      name: quote.name,
-      parts: quote.parts,
-      totalValue: quote.totalValue
-    });
-    
-    // For demo purposes, show an alert
-    alert(`Quote "${quote.name}" sent to billing!\nTotal: $${quote.totalValue.toFixed(2)}\nParts: ${quote.parts.length}`);
+    if (!selectedJob) return;
+
+    // Create invoice from quote data
+    const invoice = {
+      id: Date.now().toString(),
+      invoiceNumber: `INV-${new Date().getFullYear()}-${String(Date.now()).slice(-3)}`,
+      customerName: selectedJob.customerName,
+      jobNumber: selectedJob.jobNumber,
+      amount: quote.totalValue,
+      status: 'Draft' as const,
+      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
+      createdAt: new Date().toISOString().split('T')[0],
+      items: quote.parts.map(part => ({
+        id: part.itemId,
+        partNumber: part.partNumber,
+        name: part.name,
+        quantity: part.quantity,
+        unitPrice: part.cost,
+        totalPrice: part.cost * part.quantity
+      })),
+      notes: `Generated from kitted job quote: ${quote.name}`,
+      quoteName: quote.name,
+      quoteId: quote.id
+    };
+
+    // Save to localStorage for billing system to pick up
+    try {
+      const existingInvoices = JSON.parse(localStorage.getItem('invoices') || '[]');
+      const updatedInvoices = [...existingInvoices, invoice];
+      localStorage.setItem('invoices', JSON.stringify(updatedInvoices));
+
+      // Dispatch custom event to notify billing page
+      window.dispatchEvent(new CustomEvent('newInvoice', { detail: invoice }));
+
+      alert(`Quote "${quote.name}" successfully sent to billing!\n\nInvoice ${invoice.invoiceNumber} created in draft status.\nTotal: $${quote.totalValue.toFixed(2)}\nItems: ${quote.parts.length}\n\nYou can view and edit it in the Billing section.`);
+      
+      console.log('Invoice created and sent to billing:', invoice);
+    } catch (error) {
+      console.error('Error creating invoice:', error);
+      alert('Error creating invoice. Please try again.');
+    }
   };
 
   const handleEditQuote = (quote: Quote) => {
