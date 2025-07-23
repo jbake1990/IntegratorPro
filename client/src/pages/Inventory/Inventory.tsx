@@ -31,7 +31,8 @@ import {
   Select,
   OutlinedInput,
   Checkbox,
-  ListItemText
+  ListItemText,
+  Divider
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -505,6 +506,13 @@ const Inventory: React.FC = () => {
 
   // Receiving state
   const [receivingQuantities, setReceivingQuantities] = useState<{[itemId: string]: number}>({});
+
+  // PO Search and Details Modal state
+  const [poSearchTerm, setPOSearchTerm] = useState('');
+  const [showPODetails, setShowPODetails] = useState(false);
+  const [selectedPOForDetails, setSelectedPOForDetails] = useState<PurchaseOrder | null>(null);
+  const [filteredSearchPOs, setFilteredSearchPOs] = useState<PurchaseOrder[]>([]);
+  const [showPOSearchResults, setShowPOSearchResults] = useState(false);
   
 
   
@@ -1317,6 +1325,62 @@ const Inventory: React.FC = () => {
     console.log('Receiving process completed');
   };
 
+  // PO Search and Details handlers
+  const handlePOSearch = (searchTerm: string) => {
+    setPOSearchTerm(searchTerm);
+    if (searchTerm.length < 2) {
+      setFilteredSearchPOs([]);
+      setShowPOSearchResults(false);
+      return;
+    }
+
+    // Search all purchase orders (including received ones)
+    const allPOs = [...purchaseOrders]; // In real app, this would include historical POs
+    const filtered = allPOs.filter(po => 
+      po.poNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      po.vendor.toLowerCase().includes(searchTerm.toLowerCase())
+    ).slice(0, 10);
+
+    setFilteredSearchPOs(filtered);
+    setShowPOSearchResults(true);
+  };
+
+  const handleShowPODetails = (po: PurchaseOrder) => {
+    setSelectedPOForDetails(po);
+    setShowPODetails(true);
+    setShowPOSearchResults(false);
+    setPOSearchTerm('');
+  };
+
+  const handleClosePODetails = () => {
+    setShowPODetails(false);
+    setSelectedPOForDetails(null);
+  };
+
+  const handleShowReceivedOrderDetails = (order: ReceivedOrder) => {
+    // Find the original PO by number
+    const originalPO = purchaseOrders.find(po => po.poNumber === order.poNumber);
+    if (originalPO) {
+      setSelectedPOForDetails(originalPO);
+      setShowPODetails(true);
+    } else {
+      // Create a mock PO from received order data for display
+      const mockPO: PurchaseOrder = {
+        id: order.id,
+        poNumber: order.poNumber,
+        vendor: order.vendor,
+        orderDate: order.receiveDate, // Use receive date as approximation
+        expectedDelivery: order.receiveDate,
+        status: 'received',
+        items: [], // No item details available
+        totalAmount: order.totalAmount,
+        notes: `Received by ${order.receivedBy} on ${new Date(order.receiveDate).toLocaleDateString()}`
+      };
+      setSelectedPOForDetails(mockPO);
+      setShowPODetails(true);
+    }
+  };
+
   // Get unique values for filter dropdowns
   const categories = useMemo(() => Array.from(new Set(inventoryData.map(item => item.category))), [inventoryData]);
   const manufacturers = useMemo(() => Array.from(new Set(inventoryData.map(item => item.manufacturer))), [inventoryData]);
@@ -1660,6 +1724,74 @@ const Inventory: React.FC = () => {
 
   const renderPurchasing = () => (
     <Box>
+      {/* PO Search Section */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h5" gutterBottom>
+          Search Purchase Orders
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2 }}>
+          <TextField
+            placeholder="Search by PO number or vendor..."
+            size="small"
+            sx={{ minWidth: 300, flexGrow: 1 }}
+            value={poSearchTerm}
+            onChange={(e) => handlePOSearch(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+          />
+        </Box>
+
+        {/* Search Results */}
+        {showPOSearchResults && (
+          <Box sx={{ mb: 3, maxHeight: 300, overflowY: 'auto', border: 1, borderColor: 'divider', borderRadius: 1 }}>
+            {filteredSearchPOs.length > 0 ? (
+              filteredSearchPOs.map((po) => (
+                <Box
+                  key={po.id}
+                  onClick={() => handleShowPODetails(po)}
+                  sx={{ 
+                    p: 2, 
+                    cursor: 'pointer', 
+                    borderBottom: 1, 
+                    borderColor: 'divider',
+                    '&:hover': { bgcolor: 'action.hover' }
+                  }}
+                >
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Box>
+                      <Typography variant="subtitle1" fontWeight="medium">
+                        {po.poNumber} - {po.vendor}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Status: {po.status.toUpperCase()} • Total: {formatCurrency(po.totalAmount)} • Items: {po.items.length}
+                      </Typography>
+                    </Box>
+                    <Chip
+                      label={po.status.toUpperCase()}
+                      color={getStatusColor(po.status) as any}
+                      size="small"
+                    />
+                  </Box>
+                </Box>
+              ))
+            ) : (
+              <Box sx={{ p: 2, textAlign: 'center' }}>
+                <Typography variant="body2" color="text.secondary">
+                  No purchase orders found
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        )}
+      </Box>
+
+      <Divider sx={{ my: 3 }} />
+
       {/* New Order Section */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h5" gutterBottom>
@@ -1693,7 +1825,7 @@ const Inventory: React.FC = () => {
             {openPOs.map((po) => (
               <Grid item xs={12} md={6} lg={4} key={po.id}>
                 <Card sx={{ cursor: 'pointer', '&:hover': { boxShadow: 3 } }}>
-                  <CardContent>
+                  <CardContent onClick={() => handleShowPODetails(po)}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                       <Typography variant="h6" component="div">
                         {po.poNumber}
@@ -1730,7 +1862,10 @@ const Inventory: React.FC = () => {
                         size="small" 
                         variant="outlined" 
                         startIcon={<EditIcon />}
-                        onClick={() => handleEditPO(po)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditPO(po);
+                        }}
                       >
                         Edit
                       </Button>
@@ -1738,13 +1873,19 @@ const Inventory: React.FC = () => {
                         size="small" 
                         variant="contained" 
                         startIcon={<ReceiptIcon />}
-                        onClick={() => handleReceivePO(po)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleReceivePO(po);
+                        }}
                       >
                         Receive
                       </Button>
                       <IconButton
                         size="small"
-                        onClick={() => handleDeletePO(po.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeletePO(po.id);
+                        }}
                         color="error"
                       >
                         <DeleteIcon />
@@ -1781,7 +1922,19 @@ const Inventory: React.FC = () => {
                     key={order.id}
                     sx={index > 0 ? { borderTop: 1, borderColor: 'divider', pt: 2 } : {}}
                   >
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1 }}>
+                    <Box 
+                      sx={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center', 
+                        py: 1,
+                        cursor: 'pointer',
+                        '&:hover': { bgcolor: 'action.hover' },
+                        borderRadius: 1,
+                        px: 1
+                      }}
+                      onClick={() => handleShowReceivedOrderDetails(order)}
+                    >
                       <Box>
                         <Typography variant="subtitle1" fontWeight="medium">
                           {order.poNumber} 
@@ -2277,7 +2430,7 @@ const Inventory: React.FC = () => {
     </Dialog>
   );
 
-  const renderPurchaseOrderDialogs = () => (
+    const renderPurchaseOrderDialogs = () => (
     <>
       {/* Create/Edit/Receive PO Dialog */}
       <Dialog
@@ -2759,7 +2912,7 @@ const Inventory: React.FC = () => {
             Cancel
           </Button>
           {dialogType === 'receivePO' ? (
-                         <Button
+            <Button
                onClick={handleProcessReceiving}
                variant="contained"
                startIcon={<ReceiptIcon />}
@@ -2778,6 +2931,184 @@ const Inventory: React.FC = () => {
         </DialogActions>
       </Dialog>
     </>
+  );
+
+  const renderPODetailsModal = () => (
+    <Dialog
+      open={showPODetails}
+      onClose={handleClosePODetails}
+      maxWidth="md"
+      fullWidth
+    >
+      <DialogTitle>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h5">
+            Purchase Order Details
+          </Typography>
+          {selectedPOForDetails && (
+            <Chip
+              label={selectedPOForDetails.status.toUpperCase()}
+              color={getStatusColor(selectedPOForDetails.status) as any}
+              size="medium"
+            />
+          )}
+        </Box>
+      </DialogTitle>
+      <DialogContent>
+        {selectedPOForDetails && (
+          <Box sx={{ pt: 2 }}>
+            {/* PO Header Information */}
+            <Grid container spacing={3} sx={{ mb: 3 }}>
+              <Grid item xs={12} md={6}>
+                <Typography variant="h6" gutterBottom>
+                  Order Information
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Typography variant="body1">
+                    <strong>PO Number:</strong> {selectedPOForDetails.poNumber}
+                  </Typography>
+                  <Typography variant="body1">
+                    <strong>Vendor:</strong> {selectedPOForDetails.vendor}
+                  </Typography>
+                  <Typography variant="body1">
+                    <strong>Order Date:</strong> {new Date(selectedPOForDetails.orderDate).toLocaleDateString()}
+                  </Typography>
+                  <Typography variant="body1">
+                    <strong>Expected Delivery:</strong> {new Date(selectedPOForDetails.expectedDelivery).toLocaleDateString()}
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Typography variant="h6" gutterBottom>
+                  Order Summary
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Typography variant="body1">
+                    <strong>Total Items:</strong> {selectedPOForDetails.items.length}
+                  </Typography>
+                  <Typography variant="body1">
+                    <strong>Total Quantity:</strong> {selectedPOForDetails.items.reduce((sum, item) => sum + item.quantity, 0)}
+                  </Typography>
+                  <Typography variant="h6" color="primary.main">
+                    <strong>Total Amount:</strong> {formatCurrency(selectedPOForDetails.totalAmount)}
+                  </Typography>
+                </Box>
+              </Grid>
+            </Grid>
+
+            {/* Notes */}
+            {selectedPOForDetails.notes && (
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="h6" gutterBottom>
+                  Notes
+                </Typography>
+                <Typography variant="body1" sx={{ fontStyle: 'italic' }}>
+                  {selectedPOForDetails.notes}
+                </Typography>
+              </Box>
+            )}
+
+            {/* Items Table */}
+            {selectedPOForDetails.items.length > 0 ? (
+              <Box>
+                <Typography variant="h6" gutterBottom>
+                  Items
+                </Typography>
+                <TableContainer component={Paper}>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Part Number</TableCell>
+                        <TableCell>Description</TableCell>
+                        <TableCell align="right">Quantity</TableCell>
+                        <TableCell align="right">Unit Cost</TableCell>
+                        <TableCell align="right">Total Cost</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {selectedPOForDetails.items.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell>
+                            <Typography variant="body2" fontWeight="medium">
+                              {item.partNumber}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">
+                              {item.description}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography variant="body2">
+                              {item.quantity}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography variant="body2">
+                              {formatCurrency(item.unitCost)}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography variant="body2" fontWeight="medium">
+                              {formatCurrency(item.totalCost)}
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      <TableRow>
+                        <TableCell colSpan={4} sx={{ fontWeight: 'bold', textAlign: 'right' }}>
+                          Total:
+                        </TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 'bold' }}>
+                          {formatCurrency(selectedPOForDetails.totalAmount)}
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
+            ) : (
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <Typography variant="body1" color="text.secondary">
+                  No item details available for this order
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleClosePODetails}>
+          Close
+        </Button>
+        {selectedPOForDetails && selectedPOForDetails.status !== 'received' && (
+          <>
+            <Button
+              onClick={() => {
+                handleClosePODetails();
+                handleEditPO(selectedPOForDetails);
+              }}
+              variant="outlined"
+              startIcon={<EditIcon />}
+            >
+              Edit
+            </Button>
+            {(selectedPOForDetails.status === 'draft' || selectedPOForDetails.status === 'sent') && (
+              <Button
+                onClick={() => {
+                  handleClosePODetails();
+                  handleReceivePO(selectedPOForDetails);
+                }}
+                variant="contained"
+                startIcon={<ReceiptIcon />}
+              >
+                Receive
+              </Button>
+            )}
+          </>
+        )}
+      </DialogActions>
+    </Dialog>
   );
 
   return (
@@ -2878,6 +3209,7 @@ const Inventory: React.FC = () => {
       {renderJobSettingsDialog()}
       {renderAddQuoteDialog()}
       {renderPurchaseOrderDialogs()}
+      {renderPODetailsModal()}
     </Box>
   );
 };
