@@ -1147,35 +1147,220 @@ const Inventory: React.FC = () => {
 
   const renderPurchasing = () => (
     <Box>
-      <Typography variant="h6" gutterBottom>
-        Purchasing & Receiving
-      </Typography>
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Purchase Orders
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Create and manage purchase orders for inventory
-              </Typography>
-            </CardContent>
-          </Card>
+      {/* New Order Section */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h5" gutterBottom>
+          New Order
+        </Typography>
+        <Button
+          variant="contained"
+          size="large"
+          startIcon={<AddIcon />}
+          sx={{ mt: 1 }}
+        >
+          New Purchase Order
+        </Button>
+      </Box>
+
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', my: 3 }} />
+
+      {/* Open Purchase Orders Section */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h5" gutterBottom>
+          Open Purchase Orders
+        </Typography>
+        
+        <Grid container spacing={3} sx={{ mt: 1 }}>
+          <Grid item xs={12} md={6} lg={4}>
+            <Card sx={{ cursor: 'pointer', '&:hover': { boxShadow: 3 } }}>
+              <CardContent>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="h6" component="div">
+                    PO-001
+                  </Typography>
+                  <Chip label="SENT" color="primary" size="small" />
+                </Box>
+                
+                <Typography color="text.secondary" gutterBottom>
+                  Vendor: ABC Suppliers
+                </Typography>
+                
+                <Typography variant="body2" color="text.secondary">
+                  Order Date: 1/15/2024
+                </Typography>
+                
+                <Typography variant="body2" color="text.secondary">
+                  Expected: 1/25/2024
+                </Typography>
+                
+                <Typography variant="h6" sx={{ mt: 2, color: 'primary.main' }}>
+                  Total: $1,505.00
+                </Typography>
+                
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  2 item(s)
+                </Typography>
+
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  <Button size="small" variant="outlined" startIcon={<EditIcon />}>
+                    Edit
+                  </Button>
+                  <Button size="small" variant="contained" startIcon={<ReceiptIcon />}>
+                    Receive
+                  </Button>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+          
+          <Grid item xs={12} md={6} lg={4}>
+            <Card sx={{ cursor: 'pointer', '&:hover': { boxShadow: 3 } }}>
+              <CardContent>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="h6" component="div">
+                    PO-002
+                  </Typography>
+                  <Chip label="DRAFT" color="default" size="small" />
+                </Box>
+                
+                <Typography color="text.secondary" gutterBottom>
+                  Vendor: Tech Parts Inc
+                </Typography>
+                
+                <Typography variant="body2" color="text.secondary">
+                  Order Date: 1/20/2024
+                </Typography>
+                
+                <Typography variant="body2" color="text.secondary">
+                  Expected: 2/5/2024
+                </Typography>
+                
+                <Typography variant="h6" sx={{ mt: 2, color: 'primary.main' }}>
+                  Total: $500.00
+                </Typography>
+                
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  1 item(s)
+                </Typography>
+
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  <Button size="small" variant="outlined" startIcon={<EditIcon />}>
+                    Edit
+                  </Button>
+                  <Button size="small" variant="contained" startIcon={<ReceiptIcon />}>
+                    Receive
+                  </Button>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} md={6} lg={4}>
+            <Card sx={{ cursor: 'pointer', '&:hover': { boxShadow: 3 } }}>
+              <CardContent>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="h6" component="div">
+                    PO-003
+                  </Typography>
+                  <Chip label="SENT" color="primary" size="small" />
+                </Box>
+                
+                <Typography color="text.secondary" gutterBottom>
+                  Vendor: Industrial Supply Co
+                </Typography>
+                
+                <Typography variant="body2" color="text.secondary">
+                  Order Date: 1/22/2024
+                </Typography>
+                
+                <Typography variant="body2" color="text.secondary">
+                  Expected: 2/10/2024
+                </Typography>
+                
+                <Typography variant="h6" sx={{ mt: 2, color: 'primary.main' }}>
+                  Total: $900.00
+                </Typography>
+                
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  1 item(s)
+                </Typography>
+
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  <Button size="small" variant="outlined" startIcon={<EditIcon />}>
+                    Edit
+                  </Button>
+                  <Button size="small" variant="contained" startIcon={<ReceiptIcon />}>
+                    Receive
+                  </Button>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
         </Grid>
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Receiving
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Receive and process incoming inventory shipments
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+      </Box>
+
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', my: 3 }} />
+
+      {/* Recent Orders Section */}
+      <Box>
+        <Typography variant="h5" gutterBottom>
+          Recent Orders
+        </Typography>
+        
+        <Card sx={{ mt: 2 }}>
+          <CardContent>
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1 }}>
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight="medium">
+                      PO-005 <Chip label="COMPLETE" color="success" size="small" sx={{ ml: 1 }} />
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      ABC Suppliers • Received: 1/20/2024 • By: John Smith
+                    </Typography>
+                  </Box>
+                  <Typography variant="h6" color="primary">
+                    $2,200.00
+                  </Typography>
+                </Box>
+              </Grid>
+              
+              <Grid item xs={12} sx={{ borderTop: 1, borderColor: 'divider', pt: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1 }}>
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight="medium">
+                      PO-004 <Chip label="PARTIAL" color="warning" size="small" sx={{ ml: 1 }} />
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Tech Parts Inc • Received: 1/18/2024 • By: Jane Doe
+                    </Typography>
+                  </Box>
+                  <Typography variant="h6" color="primary">
+                    $850.00
+                  </Typography>
+                </Box>
+              </Grid>
+              
+              <Grid item xs={12} sx={{ borderTop: 1, borderColor: 'divider', pt: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1 }}>
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight="medium">
+                      PO-006 <Chip label="COMPLETE" color="success" size="small" sx={{ ml: 1 }} />
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Industrial Supply Co • Received: 1/15/2024 • By: Mike Johnson
+                    </Typography>
+                  </Box>
+                  <Typography variant="h6" color="primary">
+                    $1,200.00
+                  </Typography>
+                </Box>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+      </Box>
     </Box>
   );
 
