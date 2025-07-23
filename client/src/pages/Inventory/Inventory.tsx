@@ -487,6 +487,24 @@ const Inventory: React.FC = () => {
 
   const [editingPO, setEditingPO] = useState<PurchaseOrder | null>(null);
   const [isEditingPO, setIsEditingPO] = useState(false);
+
+  // PO Item search state
+  const [poItemSearch, setPOItemSearch] = useState('');
+  const [filteredPOItems, setFilteredPOItems] = useState<InventoryItem[]>([]);
+  const [showPOItemResults, setShowPOItemResults] = useState(false);
+  const [selectedPOItem, setSelectedPOItem] = useState<InventoryItem | null>(null);
+  const [showCreateNewItem, setShowCreateNewItem] = useState(false);
+  const [newItemData, setNewItemData] = useState({
+    partNumber: '',
+    name: '',
+    description: '',
+    manufacturer: '',
+    vendor: '',
+    cost: 0
+  });
+
+  // Receiving state
+  const [receivingQuantities, setReceivingQuantities] = useState<{[itemId: string]: number}>({});
   
 
   
@@ -975,6 +993,7 @@ const Inventory: React.FC = () => {
 
   const handleReceivePO = (po: PurchaseOrder) => {
     setEditingPO({ ...po });
+    handleInitializeReceiving(po);
     setDialogType('receivePO');
     setOpenDialog(true);
   };
@@ -999,23 +1018,7 @@ const Inventory: React.FC = () => {
     setPurchaseOrders(prev => prev.filter(po => po.id !== poId));
   };
 
-  const handleAddPOItem = () => {
-    if (!editingPO) return;
-
-    const newItem: POItem = {
-      id: Date.now().toString(),
-      partNumber: '',
-      description: '',
-      quantity: 1,
-      unitCost: 0,
-      totalCost: 0
-    };
-
-    setEditingPO({
-      ...editingPO,
-      items: [...editingPO.items, newItem]
-    });
-  };
+  // Note: handleAddPOItem removed - now using search interface directly
 
   const handleUpdatePOItem = (itemId: string, field: keyof POItem, value: any) => {
     if (!editingPO) return;
@@ -1053,22 +1056,7 @@ const Inventory: React.FC = () => {
     });
   };
 
-  const handleMarkAsReceived = (partial: boolean = false) => {
-    if (!editingPO) return;
-
-    const updatedPO = {
-      ...editingPO,
-      status: 'received' as const
-    };
-
-    setPurchaseOrders(prev => 
-      prev.map(po => po.id === editingPO.id ? updatedPO : po)
-    );
-
-    // In real app, this would create a new received order record
-    setOpenDialog(false);
-    setEditingPO(null);
-  };
+  // Removed handleMarkAsReceived - replaced with handleProcessReceiving
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -1096,6 +1084,179 @@ const Inventory: React.FC = () => {
   const recentReceivedOrders = useMemo(() => {
     return recentOrders.slice(0, 10);
   }, [recentOrders]);
+
+  // PO Item search handlers
+  const handlePOItemSearch = (searchTerm: string) => {
+    setPOItemSearch(searchTerm);
+    if (searchTerm.length < 2) {
+      setFilteredPOItems([]);
+      setShowPOItemResults(false);
+      return;
+    }
+
+    const filtered = inventoryData.filter(item => 
+      item.partNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.manufacturer.toLowerCase().includes(searchTerm.toLowerCase())
+    ).slice(0, 10);
+
+    setFilteredPOItems(filtered);
+    setShowPOItemResults(true);
+  };
+
+  const handleSelectPOItem = (item: InventoryItem) => {
+    setSelectedPOItem(item);
+    setPOItemSearch(`${item.partNumber} - ${item.name}`);
+    setShowPOItemResults(false);
+  };
+
+  const handleAddSelectedItemToPO = () => {
+    if (!selectedPOItem || !editingPO) return;
+
+    const newPOItem: POItem = {
+      id: Date.now().toString(),
+      partNumber: selectedPOItem.partNumber,
+      description: selectedPOItem.name,
+      quantity: 1,
+      unitCost: selectedPOItem.cost,
+      totalCost: selectedPOItem.cost
+    };
+
+    setEditingPO({
+      ...editingPO,
+      items: [...editingPO.items, newPOItem],
+      totalAmount: editingPO.totalAmount + newPOItem.totalCost
+    });
+
+    // Reset search
+    setSelectedPOItem(null);
+    setPOItemSearch('');
+    setShowPOItemResults(false);
+  };
+
+  const handleCreateNewInventoryItem = () => {
+    if (!newItemData.partNumber || !newItemData.name || !editingPO) return;
+
+    // Create new inventory item
+    const newInventoryItem: InventoryItem = {
+      id: Date.now().toString(),
+      sku: `SKU-${Date.now()}`,
+      partNumber: newItemData.partNumber,
+      name: newItemData.name,
+      description: newItemData.description,
+      manufacturer: newItemData.manufacturer,
+      tags: [],
+      category: 'General',
+      vendor: newItemData.vendor,
+      warehouseStock: 0,
+      truckStock: 0,
+      allocatedStock: 0,
+      totalStock: 0,
+      minStock: 0,
+      maxStock: 0,
+      cost: newItemData.cost,
+      sellingPrice: newItemData.cost * 1.5, // 50% markup
+      status: 'Out of Stock'
+    };
+
+    // Add to inventory
+    setInventoryData(prev => [...prev, newInventoryItem]);
+
+    // Create PO item
+    const newPOItem: POItem = {
+      id: Date.now().toString(),
+      partNumber: newItemData.partNumber,
+      description: newItemData.name,
+      quantity: 1,
+      unitCost: newItemData.cost,
+      totalCost: newItemData.cost
+    };
+
+    setEditingPO({
+      ...editingPO,
+      items: [...editingPO.items, newPOItem],
+      totalAmount: editingPO.totalAmount + newPOItem.totalCost
+    });
+
+    // Reset form
+    setNewItemData({
+      partNumber: '',
+      name: '',
+      description: '',
+      manufacturer: '',
+      vendor: '',
+      cost: 0
+    });
+    setShowCreateNewItem(false);
+    setPOItemSearch('');
+  };
+
+  const handleInitializeReceiving = (po: PurchaseOrder) => {
+    const quantities: {[itemId: string]: number} = {};
+    po.items.forEach(item => {
+      quantities[item.id] = 0; // Start with 0 received
+    });
+    setReceivingQuantities(quantities);
+  };
+
+  const handleReceivingQuantityChange = (itemId: string, quantity: number) => {
+    setReceivingQuantities(prev => ({
+      ...prev,
+      [itemId]: quantity
+    }));
+  };
+
+  const handleProcessReceiving = () => {
+    if (!editingPO) return;
+    
+    // Update inventory with received quantities
+    const updatedInventoryData = inventoryData.map(invItem => {
+      let additionalStock = 0;
+      
+      editingPO.items.forEach(poItem => {
+        if (poItem.partNumber === invItem.partNumber) {
+          additionalStock += receivingQuantities[poItem.id] || 0;
+        }
+      });
+
+      if (additionalStock > 0) {
+        return {
+          ...invItem,
+          warehouseStock: invItem.warehouseStock + additionalStock,
+          totalStock: invItem.totalStock + additionalStock,
+          status: (invItem.warehouseStock + additionalStock) > invItem.minStock ? 'In Stock' as const : 'Low Stock' as const
+        };
+      }
+      return invItem;
+    });
+
+    setInventoryData(updatedInventoryData);
+
+    // Determine if PO is fully received or partial
+    const isFullyReceived = editingPO.items.every(item => 
+      (receivingQuantities[item.id] || 0) >= item.quantity
+    );
+
+    const newStatus = isFullyReceived ? 'received' : editingPO.status; // Keep as open if partial
+
+    const updatedPO = {
+      ...editingPO,
+      status: newStatus
+    };
+
+    setPurchaseOrders(prev => 
+      prev.map(po => po.id === editingPO.id ? updatedPO : po)
+    );
+
+    // If fully received, could add to recent orders here
+    if (isFullyReceived) {
+      // In real app, add to recent orders
+    }
+
+    setOpenDialog(false);
+    setEditingPO(null);
+    setReceivingQuantities({});
+  };
 
   // Get unique values for filter dropdowns
   const categories = useMemo(() => Array.from(new Set(inventoryData.map(item => item.category))), [inventoryData]);
@@ -2127,20 +2288,44 @@ const Inventory: React.FC = () => {
                             <TableCell>Part Number</TableCell>
                             <TableCell>Description</TableCell>
                             <TableCell>Ordered Qty</TableCell>
+                            <TableCell>Received Qty</TableCell>
+                            <TableCell>Remaining</TableCell>
                             <TableCell>Unit Cost</TableCell>
                             <TableCell>Total</TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
-                          {editingPO.items.map((item) => (
-                            <TableRow key={item.id}>
-                              <TableCell>{item.partNumber}</TableCell>
-                              <TableCell>{item.description}</TableCell>
-                              <TableCell>{item.quantity}</TableCell>
-                              <TableCell>{formatCurrency(item.unitCost)}</TableCell>
-                              <TableCell>{formatCurrency(item.totalCost)}</TableCell>
-                            </TableRow>
-                          ))}
+                          {editingPO.items.map((item) => {
+                            const receivedQty = receivingQuantities[item.id] || 0;
+                            const remainingQty = item.quantity - receivedQty;
+                            return (
+                              <TableRow key={item.id}>
+                                <TableCell>{item.partNumber}</TableCell>
+                                <TableCell>{item.description}</TableCell>
+                                <TableCell>{item.quantity}</TableCell>
+                                <TableCell>
+                                  <TextField
+                                    size="small"
+                                    type="number"
+                                    value={receivedQty}
+                                    onChange={(e) => handleReceivingQuantityChange(item.id, parseInt(e.target.value) || 0)}
+                                    inputProps={{ min: 0, max: item.quantity }}
+                                    sx={{ width: 80 }}
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  <Typography 
+                                    variant="body2" 
+                                    color={remainingQty === 0 ? 'success.main' : 'text.secondary'}
+                                  >
+                                    {remainingQty}
+                                  </Typography>
+                                </TableCell>
+                                <TableCell>{formatCurrency(item.unitCost)}</TableCell>
+                                <TableCell>{formatCurrency(item.totalCost)}</TableCell>
+                              </TableRow>
+                            );
+                          })}
                         </TableBody>
                       </Table>
                     </TableContainer>
@@ -2226,83 +2411,242 @@ const Inventory: React.FC = () => {
                   <Box sx={{ mt: 3 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                       <Typography variant="h6">Items</Typography>
-                      <Button
-                        variant="outlined"
-                        startIcon={<AddIcon />}
-                        onClick={handleAddPOItem}
-                      >
-                        Add Item
-                      </Button>
                     </Box>
 
-                    <TableContainer component={Paper}>
-                      <Table>
-                        <TableHead>
-                          <TableRow>
-                            <TableCell>Part Number</TableCell>
-                            <TableCell>Description</TableCell>
-                            <TableCell>Quantity</TableCell>
-                            <TableCell>Unit Cost</TableCell>
-                            <TableCell>Total</TableCell>
-                            <TableCell>Actions</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {editingPO.items.map((item) => (
-                            <TableRow key={item.id}>
-                              <TableCell>
-                                <TextField
+                    {/* Add Item Section */}
+                    <Box sx={{ mb: 3, p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}>
+                      <Typography variant="subtitle1" gutterBottom>
+                        Add Item to Purchase Order
+                      </Typography>
+                      
+                      <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <TextField
+                          placeholder="Search inventory by part number, name, or manufacturer..."
+                          size="small"
+                          sx={{ minWidth: 300, flexGrow: 1 }}
+                          value={poItemSearch}
+                          onChange={(e) => handlePOItemSearch(e.target.value)}
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <SearchIcon />
+                              </InputAdornment>
+                            ),
+                          }}
+                        />
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={() => setShowCreateNewItem(true)}
+                          startIcon={<AddIcon />}
+                        >
+                          Create New Item
+                        </Button>
+                        {selectedPOItem && (
+                          <Button
+                            variant="contained"
+                            size="small"
+                            onClick={handleAddSelectedItemToPO}
+                            startIcon={<AddIcon />}
+                          >
+                            Add to PO
+                          </Button>
+                        )}
+                      </Box>
+
+                      {/* Search Results */}
+                      {showPOItemResults && (
+                        <Box sx={{ mt: 2, maxHeight: 200, overflowY: 'auto', border: 1, borderColor: 'divider', borderRadius: 1 }}>
+                          {filteredPOItems.length > 0 ? (
+                            filteredPOItems.map((item) => (
+                              <MenuItem
+                                key={item.id}
+                                onClick={() => handleSelectPOItem(item)}
+                                sx={{ p: 2, cursor: 'pointer', borderBottom: 1, borderColor: 'divider' }}
+                              >
+                                <Box>
+                                  <Typography variant="body2" fontWeight="medium">
+                                    {item.partNumber} - {item.name}
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary">
+                                    {item.manufacturer} • Cost: {formatCurrency(item.cost)} • Stock: {item.warehouseStock}
+                                  </Typography>
+                                </Box>
+                              </MenuItem>
+                            ))
+                          ) : (
+                            <Box sx={{ p: 2, textAlign: 'center' }}>
+                              <Typography variant="body2" color="text.secondary">
+                                No items found. Try a different search or create a new item.
+                              </Typography>
+                            </Box>
+                          )}
+                        </Box>
+                      )}
+
+                      {/* Create New Item Dialog */}
+                      {showCreateNewItem && (
+                        <Box sx={{ mt: 2, p: 2, border: 1, borderColor: 'primary.main', borderRadius: 1, bgcolor: 'primary.50' }}>
+                          <Typography variant="subtitle2" gutterBottom>
+                            Create New Inventory Item
+                          </Typography>
+                          <Grid container spacing={2}>
+                            <Grid item xs={12} md={6}>
+                              <TextField
+                                fullWidth
+                                size="small"
+                                label="Part Number"
+                                value={newItemData.partNumber}
+                                onChange={(e) => setNewItemData(prev => ({...prev, partNumber: e.target.value}))}
+                              />
+                            </Grid>
+                            <Grid item xs={12} md={6}>
+                              <TextField
+                                fullWidth
+                                size="small"
+                                label="Name"
+                                value={newItemData.name}
+                                onChange={(e) => setNewItemData(prev => ({...prev, name: e.target.value}))}
+                              />
+                            </Grid>
+                            <Grid item xs={12}>
+                              <TextField
+                                fullWidth
+                                size="small"
+                                label="Description"
+                                value={newItemData.description}
+                                onChange={(e) => setNewItemData(prev => ({...prev, description: e.target.value}))}
+                              />
+                            </Grid>
+                            <Grid item xs={12} md={6}>
+                              <TextField
+                                fullWidth
+                                size="small"
+                                label="Manufacturer"
+                                value={newItemData.manufacturer}
+                                onChange={(e) => setNewItemData(prev => ({...prev, manufacturer: e.target.value}))}
+                              />
+                            </Grid>
+                            <Grid item xs={12} md={6}>
+                              <TextField
+                                fullWidth
+                                size="small"
+                                label="Vendor"
+                                value={newItemData.vendor}
+                                onChange={(e) => setNewItemData(prev => ({...prev, vendor: e.target.value}))}
+                              />
+                            </Grid>
+                            <Grid item xs={12} md={6}>
+                              <TextField
+                                fullWidth
+                                size="small"
+                                label="Cost"
+                                type="number"
+                                value={newItemData.cost}
+                                onChange={(e) => setNewItemData(prev => ({...prev, cost: parseFloat(e.target.value) || 0}))}
+                                InputProps={{
+                                  startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                                }}
+                              />
+                            </Grid>
+                            <Grid item xs={12}>
+                              <Box sx={{ display: 'flex', gap: 1 }}>
+                                <Button
+                                  variant="contained"
                                   size="small"
-                                  value={item.partNumber}
-                                  onChange={(e) => handleUpdatePOItem(item.id, 'partNumber', e.target.value)}
-                                />
-                              </TableCell>
-                              <TableCell>
-                                <TextField
-                                  size="small"
-                                  value={item.description}
-                                  onChange={(e) => handleUpdatePOItem(item.id, 'description', e.target.value)}
-                                />
-                              </TableCell>
-                              <TableCell>
-                                <TextField
-                                  size="small"
-                                  type="number"
-                                  value={item.quantity}
-                                  onChange={(e) => handleUpdatePOItem(item.id, 'quantity', parseInt(e.target.value) || 0)}
-                                  inputProps={{ min: 1 }}
-                                />
-                              </TableCell>
-                              <TableCell>
-                                <TextField
-                                  size="small"
-                                  type="number"
-                                  value={item.unitCost}
-                                  onChange={(e) => handleUpdatePOItem(item.id, 'unitCost', parseFloat(e.target.value) || 0)}
-                                  InputProps={{
-                                    startAdornment: <InputAdornment position="start">$</InputAdornment>,
-                                  }}
-                                />
-                              </TableCell>
-                              <TableCell>
-                                <Typography variant="body2">
-                                  {formatCurrency(item.totalCost)}
-                                </Typography>
-                              </TableCell>
-                              <TableCell>
-                                <IconButton
-                                  size="small"
-                                  onClick={() => handleRemovePOItem(item.id)}
-                                  color="error"
+                                  onClick={handleCreateNewInventoryItem}
+                                  startIcon={<AddIcon />}
                                 >
-                                  <DeleteIcon />
-                                </IconButton>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
+                                  Create & Add to PO
+                                </Button>
+                                <Button
+                                  variant="outlined"
+                                  size="small"
+                                  onClick={() => setShowCreateNewItem(false)}
+                                >
+                                  Cancel
+                                </Button>
+                              </Box>
+                            </Grid>
+                          </Grid>
+                        </Box>
+                      )}
+                    </Box>
+
+                    {/* Existing Items */}
+                    {editingPO.items.length > 0 && (
+                      <Box>
+                        <Typography variant="subtitle1" gutterBottom>
+                          Items in Purchase Order
+                        </Typography>
+                        <TableContainer component={Paper}>
+                          <Table>
+                            <TableHead>
+                              <TableRow>
+                                <TableCell>Part Number</TableCell>
+                                <TableCell>Description</TableCell>
+                                <TableCell>Quantity</TableCell>
+                                <TableCell>Unit Cost</TableCell>
+                                <TableCell>Total</TableCell>
+                                <TableCell>Actions</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {editingPO.items.map((item) => (
+                                <TableRow key={item.id}>
+                                  <TableCell>
+                                    <Typography variant="body2" fontWeight="medium">
+                                      {item.partNumber}
+                                    </Typography>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Typography variant="body2">
+                                      {item.description}
+                                    </Typography>
+                                  </TableCell>
+                                  <TableCell>
+                                    <TextField
+                                      size="small"
+                                      type="number"
+                                      value={item.quantity}
+                                      onChange={(e) => handleUpdatePOItem(item.id, 'quantity', parseInt(e.target.value) || 0)}
+                                      inputProps={{ min: 1 }}
+                                      sx={{ width: 80 }}
+                                    />
+                                  </TableCell>
+                                  <TableCell>
+                                    <TextField
+                                      size="small"
+                                      type="number"
+                                      value={item.unitCost}
+                                      onChange={(e) => handleUpdatePOItem(item.id, 'unitCost', parseFloat(e.target.value) || 0)}
+                                      InputProps={{
+                                        startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                                      }}
+                                      sx={{ width: 100 }}
+                                    />
+                                  </TableCell>
+                                  <TableCell>
+                                    <Typography variant="body2" fontWeight="medium">
+                                      {formatCurrency(item.totalCost)}
+                                    </Typography>
+                                  </TableCell>
+                                  <TableCell>
+                                    <IconButton
+                                      size="small"
+                                      onClick={() => handleRemovePOItem(item.id)}
+                                      color="error"
+                                    >
+                                      <DeleteIcon />
+                                    </IconButton>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
+                      </Box>
+                    )}
 
                     <Box sx={{ mt: 2, textAlign: 'right' }}>
                       <Typography variant="h6">
@@ -2320,22 +2664,13 @@ const Inventory: React.FC = () => {
             Cancel
           </Button>
           {dialogType === 'receivePO' ? (
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Button
-                onClick={() => handleMarkAsReceived(true)}
-                variant="outlined"
-                startIcon={<ReceiptIcon />}
-              >
-                Receive Partial
-              </Button>
-              <Button
-                onClick={() => handleMarkAsReceived(false)}
-                variant="contained"
-                startIcon={<ReceiptIcon />}
-              >
-                Receive Complete
-              </Button>
-            </Box>
+                         <Button
+               onClick={handleProcessReceiving}
+               variant="contained"
+               startIcon={<ReceiptIcon />}
+             >
+               Process Receiving
+             </Button>
           ) : (
             <Button
               onClick={handleSavePO}
