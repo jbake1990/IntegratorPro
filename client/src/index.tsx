@@ -86,26 +86,26 @@ const root = ReactDOM.createRoot(
 root.render(
   <React.StrictMode>
     <ErrorBoundary>
-      <Provider store={store}>
-        <QueryClientProvider client={queryClient}>
-          <ThemeProvider theme={theme}>
-            <CssBaseline />
-            <BrowserRouter>
-              <App />
-              <Toaster
-                position="top-right"
-                toastOptions={{
-                  duration: 4000,
-                  style: {
-                    background: '#363636',
-                    color: '#fff',
-                  },
-                }}
-              />
-            </BrowserRouter>
-          </ThemeProvider>
-        </QueryClientProvider>
-      </Provider>
+    <Provider store={store}>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <BrowserRouter>
+            <App />
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                duration: 4000,
+                style: {
+                  background: '#363636',
+                  color: '#fff',
+                },
+              }}
+            />
+          </BrowserRouter>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </Provider>
     </ErrorBoundary>
   </React.StrictMode>
 ); 

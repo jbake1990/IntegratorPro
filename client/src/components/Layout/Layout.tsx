@@ -143,7 +143,7 @@ const Layout: React.FC = () => {
             display: { sm: 'none' }
           }}
         >
-          <Toolbar>
+        <Toolbar>
             <IconButton
               color="inherit"
               aria-label="open drawer"
@@ -153,11 +153,11 @@ const Layout: React.FC = () => {
             >
               <MenuIcon />
             </IconButton>
-            <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-              Integrator Pro
-            </Typography>
-          </Toolbar>
-        </AppBar>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            Integrator Pro
+          </Typography>
+        </Toolbar>
+      </AppBar>
         
         <Box 
           component="main" 
@@ -168,7 +168,7 @@ const Layout: React.FC = () => {
             width: { xs: '100%', sm: `calc(100% - ${drawerWidth}px)` }
           }}
         >
-          <Outlet />
+        <Outlet />
         </Box>
       </Box>
     </Box>

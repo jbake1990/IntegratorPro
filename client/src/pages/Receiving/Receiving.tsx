@@ -233,9 +233,9 @@ const Receiving: React.FC = () => {
   return (
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" gutterBottom>
-          Receiving
-        </Typography>
+      <Typography variant="h4" gutterBottom>
+        Receiving
+      </Typography>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
@@ -487,7 +487,7 @@ const Receiving: React.FC = () => {
                 <Box sx={{ mt: 2, textAlign: 'right' }}>
                   <Typography variant="h6">
                     Total Received: {formatCurrency(editingRecord.items.reduce((sum, item) => sum + item.totalCost, 0))}
-                  </Typography>
+      </Typography>
                 </Box>
               </Box>
             </Box>

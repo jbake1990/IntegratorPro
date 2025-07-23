@@ -99,6 +99,7 @@ interface Quote {
   name: string;
   parts: JobPart[];
   totalValue: number;
+  billedToInvoice?: string;
 }
 
 interface POItem {
@@ -987,7 +988,8 @@ const Inventory: React.FC = () => {
         name: part.name,
         quantity: part.quantity,
         unitPrice: part.cost,
-        totalPrice: part.cost * part.quantity
+        totalPrice: part.cost * part.quantity,
+        type: 'part' as const
       })),
       notes: `Generated from kitted job quote: ${quote.name}`,
       quoteName: quote.name,
@@ -1003,7 +1005,24 @@ const Inventory: React.FC = () => {
       // Dispatch custom event to notify billing page
       window.dispatchEvent(new CustomEvent('newInvoice', { detail: invoice }));
 
-      alert(`Quote "${quote.name}" successfully sent to billing!\n\nInvoice ${invoice.invoiceNumber} created in draft status.\nTotal: $${quote.totalValue.toFixed(2)}\nItems: ${quote.parts.length}\n\nYou can view and edit it in the Billing section.`);
+      // Mark the job as completed/billed by updating its status
+      const updatedJob = {
+        ...selectedJob,
+        status: 'Completed' as const,
+        quotes: selectedJob.quotes.map(q => 
+          q.id === quote.id ? { ...q, billedToInvoice: invoice.invoiceNumber } : q
+        )
+      };
+
+      setJobs(prevJobs => 
+        prevJobs.map(job => 
+          job.id === selectedJob.id ? updatedJob : job
+        )
+      );
+
+      setSelectedJob(updatedJob);
+
+      alert(`Quote "${quote.name}" successfully sent to billing!\n\nInvoice ${invoice.invoiceNumber} created in draft status.\nTotal: $${quote.totalValue.toFixed(2)}\nItems: ${quote.parts.length}\n\nJob ${selectedJob.jobNumber} marked as completed.\nYou can view and edit the invoice in the Billing section.`);
       
       console.log('Invoice created and sent to billing:', invoice);
     } catch (error) {
@@ -1869,54 +1888,202 @@ const Inventory: React.FC = () => {
     </Grid>
   );
 
-  const renderJobList = () => (
-    <Grid container spacing={3}>
-      {jobs.map((job) => (
-        <Grid item xs={12} md={6} lg={4} key={job.id}>
-          <Card 
-            sx={{ 
-              cursor: 'pointer',
-              '&:hover': { boxShadow: 3 }
-            }}
-            onClick={() => handleJobClick(job)}
-          >
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                <Box>
-                  <Typography variant="h6" component="div">
-                    {job.customerName}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {job.jobNumber}
-                  </Typography>
-                </Box>
-                <IconButton
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleJobClick(job);
-                  }}
-                >
-                  <SettingsIcon />
-                </IconButton>
-              </Box>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                Quotes: {job.quotes.length}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                Total Value: ${job.totalValue.toFixed(2)}
-              </Typography>
-              <Chip 
-                label={job.status} 
-                size="small"
-                color={job.status === 'Active' ? 'primary' : job.status === 'Completed' ? 'success' : 'error'}
-              />
-            </CardContent>
-          </Card>
-        </Grid>
-      ))}
-    </Grid>
-  );
+  const renderJobList = () => {
+    // Filter jobs to show active jobs prominently and completed jobs separately
+    const activeJobs = jobs.filter(job => job.status === 'Active');
+    const completedJobs = jobs.filter(job => job.status === 'Completed');
+    const cancelledJobs = jobs.filter(job => job.status === 'Cancelled');
+
+    return (
+      <Box>
+        {/* Active Jobs */}
+        {activeJobs.length > 0 && (
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="h6" gutterBottom>
+              Active Jobs ({activeJobs.length})
+            </Typography>
+            <Grid container spacing={3}>
+              {activeJobs.map((job) => (
+                <Grid item xs={12} md={6} lg={4} key={job.id}>
+                  <Card 
+                    sx={{ 
+                      cursor: 'pointer',
+                      '&:hover': { boxShadow: 3 }
+                    }}
+                    onClick={() => handleJobClick(job)}
+                  >
+                    <CardContent>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                        <Box>
+                          <Typography variant="h6" component="div">
+                            {job.customerName}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {job.jobNumber}
+                          </Typography>
+                        </Box>
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleJobClick(job);
+                          }}
+                        >
+                          <SettingsIcon />
+                        </IconButton>
+                      </Box>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        Quotes: {job.quotes.length}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        Total Value: ${job.totalValue.toFixed(2)}
+                      </Typography>
+                      <Chip 
+                        label={job.status} 
+                        size="small"
+                        color="primary"
+                      />
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
+        )}
+
+        {/* Completed Jobs */}
+        {completedJobs.length > 0 && (
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="h6" gutterBottom>
+              Completed Jobs ({completedJobs.length}) - Sent to Billing
+            </Typography>
+            <Grid container spacing={3}>
+              {completedJobs.map((job) => (
+                <Grid item xs={12} md={6} lg={4} key={job.id}>
+                  <Card 
+                    sx={{ 
+                      cursor: 'pointer',
+                      '&:hover': { boxShadow: 3 },
+                      opacity: 0.8,
+                      border: 1,
+                      borderColor: 'success.main'
+                    }}
+                    onClick={() => handleJobClick(job)}
+                  >
+                    <CardContent>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                        <Box>
+                          <Typography variant="h6" component="div">
+                            {job.customerName}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {job.jobNumber}
+                          </Typography>
+                          {job.quotes.some(q => q.billedToInvoice) && (
+                            <Typography variant="caption" color="success.main">
+                              Invoice: {job.quotes.find(q => q.billedToInvoice)?.billedToInvoice}
+                            </Typography>
+                          )}
+                        </Box>
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleJobClick(job);
+                          }}
+                        >
+                          <SettingsIcon />
+                        </IconButton>
+                      </Box>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        Quotes: {job.quotes.length}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        Total Value: ${job.totalValue.toFixed(2)}
+                      </Typography>
+                      <Chip 
+                        label="Completed - Billed" 
+                        size="small"
+                        color="success"
+                      />
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
+        )}
+
+        {/* Cancelled Jobs */}
+        {cancelledJobs.length > 0 && (
+          <Box>
+            <Typography variant="h6" gutterBottom>
+              Cancelled Jobs ({cancelledJobs.length})
+            </Typography>
+            <Grid container spacing={3}>
+              {cancelledJobs.map((job) => (
+                <Grid item xs={12} md={6} lg={4} key={job.id}>
+                  <Card 
+                    sx={{ 
+                      cursor: 'pointer',
+                      '&:hover': { boxShadow: 3 },
+                      opacity: 0.6
+                    }}
+                    onClick={() => handleJobClick(job)}
+                  >
+                    <CardContent>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                        <Box>
+                          <Typography variant="h6" component="div">
+                            {job.customerName}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {job.jobNumber}
+                          </Typography>
+                        </Box>
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleJobClick(job);
+                          }}
+                        >
+                          <SettingsIcon />
+                        </IconButton>
+                      </Box>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        Quotes: {job.quotes.length}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        Total Value: ${job.totalValue.toFixed(2)}
+                      </Typography>
+                      <Chip 
+                        label={job.status} 
+                        size="small"
+                        color="error"
+                      />
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
+        )}
+
+        {/* No Jobs */}
+        {jobs.length === 0 && (
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <Typography variant="h6" color="text.secondary" gutterBottom>
+              No Kitted Jobs
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Click "Add Job" to create your first kitted job
+            </Typography>
+          </Box>
+        )}
+      </Box>
+    );
+  };
 
 
   const renderStockMovement = () => (

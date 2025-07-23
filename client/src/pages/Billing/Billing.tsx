@@ -25,7 +25,10 @@ import {
   IconButton,
   Menu,
   MenuItem,
-  Divider
+  Divider,
+  FormControl,
+  InputLabel,
+  Select
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -46,6 +49,7 @@ interface InvoiceItem {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  type: 'part' | 'labor';
 }
 
 interface Invoice {
@@ -75,8 +79,8 @@ const mockInvoices: Invoice[] = [
     createdAt: '2024-01-15',
     notes: 'Brake system installation',
     items: [
-      { id: '1', partNumber: 'BRK-001', name: 'Brake Pads - Premium', quantity: 4, unitPrice: 125.00, totalPrice: 500.00 },
-      { id: '2', partNumber: 'BRK-002', name: 'Brake Rotors - Heavy Duty', quantity: 2, unitPrice: 975.00, totalPrice: 1950.00 }
+      { id: '1', partNumber: 'BRK-001', name: 'Brake Pads - Premium', quantity: 4, unitPrice: 125.00, totalPrice: 500.00, type: 'part' as const },
+      { id: '2', partNumber: 'BRK-002', name: 'Brake Rotors - Heavy Duty', quantity: 2, unitPrice: 975.00, totalPrice: 1950.00, type: 'part' as const }
     ]
   },
   {
@@ -90,8 +94,8 @@ const mockInvoices: Invoice[] = [
     createdAt: '2024-01-10',
     notes: 'Air conditioning repair',
     items: [
-      { id: '3', partNumber: 'AC-001', name: 'A/C Compressor', quantity: 1, unitPrice: 1250.50, totalPrice: 1250.50 },
-      { id: '4', partNumber: 'AC-002', name: 'Refrigerant', quantity: 2, unitPrice: 320.00, totalPrice: 640.00 }
+      { id: '3', partNumber: 'AC-001', name: 'A/C Compressor', quantity: 1, unitPrice: 1250.50, totalPrice: 1250.50, type: 'part' as const },
+      { id: '4', partNumber: 'AC-002', name: 'Refrigerant', quantity: 2, unitPrice: 320.00, totalPrice: 640.00, type: 'part' as const }
     ]
   },
   {
@@ -105,9 +109,9 @@ const mockInvoices: Invoice[] = [
     createdAt: '2024-01-20',
     notes: 'Fleet maintenance package',
     items: [
-      { id: '5', partNumber: 'OIL-001', name: 'Synthetic Oil', quantity: 10, unitPrice: 45.00, totalPrice: 450.00 },
-      { id: '6', partNumber: 'FLT-001', name: 'Air Filter', quantity: 8, unitPrice: 25.00, totalPrice: 200.00 },
-      { id: '7', partNumber: 'TIR-001', name: 'Commercial Tires', quantity: 8, unitPrice: 318.75, totalPrice: 2550.00 }
+      { id: '5', partNumber: 'OIL-001', name: 'Synthetic Oil', quantity: 10, unitPrice: 45.00, totalPrice: 450.00, type: 'part' as const },
+      { id: '6', partNumber: 'FLT-001', name: 'Air Filter', quantity: 8, unitPrice: 25.00, totalPrice: 200.00, type: 'part' as const },
+      { id: '7', partNumber: 'TIR-001', name: 'Commercial Tires', quantity: 8, unitPrice: 318.75, totalPrice: 2550.00, type: 'part' as const }
     ]
   }
 ];
@@ -120,6 +124,16 @@ const Billing: React.FC = () => {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [editingInvoice, setEditingInvoice] = useState<Partial<Invoice>>({});
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  
+  // Item editing state
+  const [editingItems, setEditingItems] = useState<InvoiceItem[]>([]);
+  const [newItemData, setNewItemData] = useState({
+    partNumber: '',
+    name: '',
+    quantity: 1,
+    unitPrice: 0,
+    type: 'part' as 'part' | 'labor'
+  });
 
   // Load invoices from localStorage on component mount
   useEffect(() => {
@@ -194,6 +208,7 @@ const Billing: React.FC = () => {
     if (invoice) {
       setSelectedInvoice(invoice);
       setEditingInvoice({ ...invoice });
+      setEditingItems([...invoice.items]);
     } else {
       setSelectedInvoice(null);
       setEditingInvoice({
@@ -204,6 +219,7 @@ const Billing: React.FC = () => {
         amount: 0,
         dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // 30 days from now
       });
+      setEditingItems([]);
     }
     setOpenDialog(true);
   };
@@ -212,6 +228,14 @@ const Billing: React.FC = () => {
     setOpenDialog(false);
     setSelectedInvoice(null);
     setEditingInvoice({});
+    setEditingItems([]);
+    setNewItemData({
+      partNumber: '',
+      name: '',
+      quantity: 1,
+      unitPrice: 0,
+      type: 'part'
+    });
   };
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, invoice: Invoice) => {
@@ -234,19 +258,80 @@ const Billing: React.FC = () => {
     return `INV-${currentYear}-${String(nextNumber).padStart(3, '0')}`;
   };
 
+  // Item management functions
+  const handleAddItem = () => {
+    if (!newItemData.name) return;
+
+    const newItem: InvoiceItem = {
+      id: Date.now().toString(),
+      partNumber: newItemData.partNumber || (newItemData.type === 'labor' ? 'LABOR' : 'PART'),
+      name: newItemData.name,
+      quantity: newItemData.quantity,
+      unitPrice: newItemData.unitPrice,
+      totalPrice: newItemData.quantity * newItemData.unitPrice,
+      type: newItemData.type
+    };
+
+    setEditingItems(prev => [...prev, newItem]);
+    setNewItemData({
+      partNumber: '',
+      name: '',
+      quantity: 1,
+      unitPrice: 0,
+      type: 'part'
+    });
+  };
+
+  const handleRemoveItem = (itemId: string) => {
+    setEditingItems(prev => prev.filter(item => item.id !== itemId));
+  };
+
+  const handleUpdateItem = (itemId: string, field: keyof InvoiceItem, value: any) => {
+    setEditingItems(prev => prev.map(item => {
+      if (item.id === itemId) {
+        const updatedItem = { ...item, [field]: value };
+        if (field === 'quantity' || field === 'unitPrice') {
+          updatedItem.totalPrice = updatedItem.quantity * updatedItem.unitPrice;
+        }
+        return updatedItem;
+      }
+      return item;
+    }));
+  };
+
+  const handleMoveItemUp = (index: number) => {
+    if (index === 0) return;
+    const newItems = [...editingItems];
+    [newItems[index - 1], newItems[index]] = [newItems[index], newItems[index - 1]];
+    setEditingItems(newItems);
+  };
+
+  const handleMoveItemDown = (index: number) => {
+    if (index === editingItems.length - 1) return;
+    const newItems = [...editingItems];
+    [newItems[index], newItems[index + 1]] = [newItems[index + 1], newItems[index]];
+    setEditingItems(newItems);
+  };
+
+  const calculateTotalAmount = () => {
+    return editingItems.reduce((sum, item) => sum + item.totalPrice, 0);
+  };
+
   const handleSaveInvoice = () => {
     if (!editingInvoice.customerName || !editingInvoice.jobNumber) return;
+
+    const totalAmount = calculateTotalAmount();
 
     const invoiceData: Invoice = {
       id: selectedInvoice?.id || Date.now().toString(),
       invoiceNumber: selectedInvoice?.invoiceNumber || getNextInvoiceNumber(),
       customerName: editingInvoice.customerName || '',
       jobNumber: editingInvoice.jobNumber || '',
-      amount: editingInvoice.amount || 0,
+      amount: totalAmount,
       status: editingInvoice.status || 'Draft',
       dueDate: editingInvoice.dueDate || '',
       createdAt: selectedInvoice?.createdAt || new Date().toISOString().split('T')[0],
-      items: editingInvoice.items || [],
+      items: editingItems,
       notes: editingInvoice.notes || '',
       quoteName: editingInvoice.quoteName,
       quoteId: editingInvoice.quoteId
@@ -554,30 +639,38 @@ const Billing: React.FC = () => {
                 <Grid item xs={12}>
                   <Typography variant="h6" gutterBottom>Invoice Items</Typography>
                   <TableContainer component={Paper}>
-                    <Table>
-                      <TableHead>
+                                           <Table>
+                         <TableHead>
+                           <TableRow>
+                             <TableCell>Type</TableCell>
+                             <TableCell>Part Number</TableCell>
+                             <TableCell>Description</TableCell>
+                             <TableCell align="right">Quantity</TableCell>
+                             <TableCell align="right">Unit Price</TableCell>
+                             <TableCell align="right">Total</TableCell>
+                           </TableRow>
+                         </TableHead>
+                         <TableBody>
+                           {selectedInvoice.items.map((item) => (
+                             <TableRow key={item.id}>
+                               <TableCell>
+                                 <Chip 
+                                   label={item.type.toUpperCase()} 
+                                   color={item.type === 'labor' ? 'secondary' : 'primary'} 
+                                   size="small" 
+                                 />
+                               </TableCell>
+                               <TableCell>{item.partNumber}</TableCell>
+                               <TableCell>{item.name}</TableCell>
+                               <TableCell align="right">{item.quantity}</TableCell>
+                               <TableCell align="right">${item.unitPrice.toFixed(2)}</TableCell>
+                               <TableCell align="right">${item.totalPrice.toFixed(2)}</TableCell>
+                             </TableRow>
+                           ))}
                         <TableRow>
-                          <TableCell>Part Number</TableCell>
-                          <TableCell>Description</TableCell>
-                          <TableCell align="right">Quantity</TableCell>
-                          <TableCell align="right">Unit Price</TableCell>
-                          <TableCell align="right">Total</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {selectedInvoice.items.map((item) => (
-                          <TableRow key={item.id}>
-                            <TableCell>{item.partNumber}</TableCell>
-                            <TableCell>{item.name}</TableCell>
-                            <TableCell align="right">{item.quantity}</TableCell>
-                            <TableCell align="right">${item.unitPrice.toFixed(2)}</TableCell>
-                            <TableCell align="right">${item.totalPrice.toFixed(2)}</TableCell>
-                          </TableRow>
-                        ))}
-                        <TableRow>
-                          <TableCell colSpan={4} sx={{ fontWeight: 'bold', textAlign: 'right' }}>
-                            Total:
-                          </TableCell>
+                                                     <TableCell colSpan={5} sx={{ fontWeight: 'bold', textAlign: 'right' }}>
+                             Total:
+                           </TableCell>
                           <TableCell align="right" sx={{ fontWeight: 'bold' }}>
                             ${selectedInvoice.amount.toFixed(2)}
                           </TableCell>
@@ -645,13 +738,214 @@ const Billing: React.FC = () => {
                     rows={3}
                   />
                 </Grid>
-                {dialogType === 'create' && (
-                  <Grid item xs={12}>
-                    <Alert severity="info">
-                      For items from kitted jobs, they will be automatically populated when sent from the Stock Movement section.
-                    </Alert>
-                  </Grid>
-                )}
+                                 {/* Items Management Section */}
+                 <Grid item xs={12}>
+                   <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                     Invoice Items
+                   </Typography>
+                   
+                   {/* Add New Item Form */}
+                   <Box sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 1, mb: 2 }}>
+                     <Typography variant="subtitle1" gutterBottom>
+                       Add New Item
+                     </Typography>
+                     <Grid container spacing={2}>
+                       <Grid item xs={12} md={3}>
+                         <FormControl fullWidth size="small">
+                           <InputLabel>Type</InputLabel>
+                           <Select
+                             value={newItemData.type}
+                             onChange={(e) => setNewItemData(prev => ({ ...prev, type: e.target.value as 'part' | 'labor' }))}
+                             label="Type"
+                           >
+                             <MenuItem value="part">Part</MenuItem>
+                             <MenuItem value="labor">Labor</MenuItem>
+                           </Select>
+                         </FormControl>
+                       </Grid>
+                       <Grid item xs={12} md={3}>
+                         <TextField
+                           fullWidth
+                           size="small"
+                           label={newItemData.type === 'labor' ? "Labor Code" : "Part Number"}
+                           value={newItemData.partNumber}
+                           onChange={(e) => setNewItemData(prev => ({ ...prev, partNumber: e.target.value }))}
+                           placeholder={newItemData.type === 'labor' ? "Optional" : "Required"}
+                         />
+                       </Grid>
+                       <Grid item xs={12} md={6}>
+                         <TextField
+                           fullWidth
+                           size="small"
+                           label={newItemData.type === 'labor' ? "Labor Description" : "Part Description"}
+                           value={newItemData.name}
+                           onChange={(e) => setNewItemData(prev => ({ ...prev, name: e.target.value }))}
+                           required
+                         />
+                       </Grid>
+                       <Grid item xs={12} md={3}>
+                         <TextField
+                           fullWidth
+                           size="small"
+                           label="Quantity"
+                           type="number"
+                           value={newItemData.quantity}
+                           onChange={(e) => setNewItemData(prev => ({ ...prev, quantity: parseFloat(e.target.value) || 0 }))}
+                           inputProps={{ min: 0, step: 0.1 }}
+                         />
+                       </Grid>
+                       <Grid item xs={12} md={3}>
+                         <TextField
+                           fullWidth
+                           size="small"
+                           label={newItemData.type === 'labor' ? "Rate/Hour" : "Unit Price"}
+                           type="number"
+                           value={newItemData.unitPrice}
+                           onChange={(e) => setNewItemData(prev => ({ ...prev, unitPrice: parseFloat(e.target.value) || 0 }))}
+                           InputProps={{
+                             startAdornment: <Box sx={{ mr: 1 }}>$</Box>,
+                           }}
+                           inputProps={{ min: 0, step: 0.01 }}
+                         />
+                       </Grid>
+                       <Grid item xs={12} md={3}>
+                         <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+                           <Typography variant="body2" sx={{ mr: 1 }}>Total:</Typography>
+                           <Typography variant="h6" color="primary.main">
+                             ${(newItemData.quantity * newItemData.unitPrice).toFixed(2)}
+                           </Typography>
+                         </Box>
+                       </Grid>
+                       <Grid item xs={12} md={3}>
+                         <Button
+                           fullWidth
+                           variant="contained"
+                           onClick={handleAddItem}
+                           disabled={!newItemData.name}
+                           startIcon={<AddIcon />}
+                         >
+                           Add Item
+                         </Button>
+                       </Grid>
+                     </Grid>
+                   </Box>
+
+                   {/* Current Items List */}
+                   {editingItems.length > 0 && (
+                     <TableContainer component={Paper} sx={{ mb: 2 }}>
+                       <Table>
+                         <TableHead>
+                           <TableRow>
+                             <TableCell>Type</TableCell>
+                             <TableCell>Part/Code</TableCell>
+                             <TableCell>Description</TableCell>
+                             <TableCell align="right">Qty</TableCell>
+                             <TableCell align="right">Unit Price</TableCell>
+                             <TableCell align="right">Total</TableCell>
+                             <TableCell align="center">Actions</TableCell>
+                           </TableRow>
+                         </TableHead>
+                         <TableBody>
+                           {editingItems.map((item, index) => (
+                             <TableRow key={item.id}>
+                               <TableCell>
+                                 <Chip 
+                                   label={item.type.toUpperCase()} 
+                                   color={item.type === 'labor' ? 'secondary' : 'primary'} 
+                                   size="small" 
+                                 />
+                               </TableCell>
+                               <TableCell>
+                                 <TextField
+                                   size="small"
+                                   value={item.partNumber}
+                                   onChange={(e) => handleUpdateItem(item.id, 'partNumber', e.target.value)}
+                                   sx={{ minWidth: 100 }}
+                                 />
+                               </TableCell>
+                               <TableCell>
+                                 <TextField
+                                   size="small"
+                                   value={item.name}
+                                   onChange={(e) => handleUpdateItem(item.id, 'name', e.target.value)}
+                                   sx={{ minWidth: 200 }}
+                                 />
+                               </TableCell>
+                               <TableCell align="right">
+                                 <TextField
+                                   size="small"
+                                   type="number"
+                                   value={item.quantity}
+                                   onChange={(e) => handleUpdateItem(item.id, 'quantity', parseFloat(e.target.value) || 0)}
+                                   sx={{ width: 80 }}
+                                   inputProps={{ min: 0, step: 0.1 }}
+                                 />
+                               </TableCell>
+                               <TableCell align="right">
+                                 <TextField
+                                   size="small"
+                                   type="number"
+                                   value={item.unitPrice}
+                                   onChange={(e) => handleUpdateItem(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
+                                   sx={{ width: 100 }}
+                                   InputProps={{
+                                     startAdornment: <Box sx={{ mr: 0.5 }}>$</Box>,
+                                   }}
+                                   inputProps={{ min: 0, step: 0.01 }}
+                                 />
+                               </TableCell>
+                               <TableCell align="right">
+                                 <Typography variant="body2" fontWeight="medium">
+                                   ${item.totalPrice.toFixed(2)}
+                                 </Typography>
+                               </TableCell>
+                               <TableCell align="center">
+                                 <Box sx={{ display: 'flex', gap: 0.5 }}>
+                                   <IconButton 
+                                     size="small" 
+                                     onClick={() => handleMoveItemUp(index)}
+                                     disabled={index === 0}
+                                   >
+                                     ↑
+                                   </IconButton>
+                                   <IconButton 
+                                     size="small" 
+                                     onClick={() => handleMoveItemDown(index)}
+                                     disabled={index === editingItems.length - 1}
+                                   >
+                                     ↓
+                                   </IconButton>
+                                   <IconButton 
+                                     size="small" 
+                                     onClick={() => handleRemoveItem(item.id)}
+                                     color="error"
+                                   >
+                                     <DeleteIcon />
+                                   </IconButton>
+                                 </Box>
+                               </TableCell>
+                             </TableRow>
+                           ))}
+                           <TableRow>
+                             <TableCell colSpan={5} sx={{ fontWeight: 'bold', textAlign: 'right' }}>
+                               Total Amount:
+                             </TableCell>
+                             <TableCell align="right" sx={{ fontWeight: 'bold' }}>
+                               ${calculateTotalAmount().toFixed(2)}
+                             </TableCell>
+                             <TableCell />
+                           </TableRow>
+                         </TableBody>
+                       </Table>
+                     </TableContainer>
+                   )}
+
+                   {dialogType === 'create' && editingItems.length === 0 && (
+                     <Alert severity="info">
+                       Add items above or send kitted jobs from the Stock Movement section to auto-populate invoice items.
+                     </Alert>
+                   )}
+                 </Grid>
               </Grid>
             )}
           </Box>
