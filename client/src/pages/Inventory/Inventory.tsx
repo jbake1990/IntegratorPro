@@ -34,6 +34,7 @@ import {
   ListItemText,
   Divider
 } from '@mui/material';
+import { useAuth } from '../../hooks/useAuth';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -349,6 +350,7 @@ const mockJobs: KittedJob[] = [
 ];
 
 const Inventory: React.FC = () => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState(0);
   const [inventoryData, setInventoryData] = useState<InventoryItem[]>(mockInventoryData);
   const [trucks, setTrucks] = useState<ServiceTruck[]>(mockTrucks);
@@ -513,6 +515,22 @@ const Inventory: React.FC = () => {
   const [selectedPOForDetails, setSelectedPOForDetails] = useState<PurchaseOrder | null>(null);
   const [filteredSearchPOs, setFilteredSearchPOs] = useState<PurchaseOrder[]>([]);
   const [showPOSearchResults, setShowPOSearchResults] = useState(false);
+
+  // Inventory Actions state
+  const [editFormData, setEditFormData] = useState<Partial<InventoryItem>>({});
+  const [moveStockData, setMoveStockData] = useState({
+    fromLocation: '',
+    toLocation: '',
+    quantity: 0
+  });
+  const [adjustCountData, setAdjustCountData] = useState({
+    newCount: 0,
+    reason: '',
+    adminPassword: ''
+  });
+  const [showAdminAuth, setShowAdminAuth] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
+  const [pendingAction, setPendingAction] = useState<'adjust' | 'delete' | null>(null);
   
 
   
@@ -543,12 +561,14 @@ const Inventory: React.FC = () => {
     setSelectedTruck(null);
   };
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, item: InventoryItem) => {
     setAnchorEl(event.currentTarget);
+    setSelectedItem(item);
   };
 
   const handleMenuClose = () => {
     setAnchorEl(null);
+    setSelectedItem(null);
   };
 
   const handleClearFilters = () => {
@@ -1357,6 +1377,172 @@ const Inventory: React.FC = () => {
     setSelectedPOForDetails(null);
   };
 
+  // Inventory Action Handlers
+  const isAdmin = () => {
+    return user?.role?.toUpperCase() === 'ADMIN';
+  };
+
+  const handleEditItem = () => {
+    if (!selectedItem) return;
+    setEditFormData({ ...selectedItem });
+    setDialogType('edit');
+    setOpenDialog(true);
+    handleMenuClose();
+  };
+
+  const handleMoveStock = () => {
+    if (!selectedItem) return;
+    setMoveStockData({
+      fromLocation: 'warehouse',
+      toLocation: '',
+      quantity: 0
+    });
+    setDialogType('move');
+    setOpenDialog(true);
+    handleMenuClose();
+  };
+
+  const handleAdjustCount = () => {
+    if (!selectedItem) return;
+    if (!isAdmin()) {
+      setPendingAction('adjust');
+      setShowAdminAuth(true);
+      handleMenuClose();
+      return;
+    }
+    setAdjustCountData({
+      newCount: selectedItem.warehouseStock,
+      reason: '',
+      adminPassword: ''
+    });
+    setDialogType('adjust');
+    setOpenDialog(true);
+    handleMenuClose();
+  };
+
+  const handleDeleteItem = () => {
+    if (!selectedItem) return;
+    if (!isAdmin()) {
+      setPendingAction('delete');
+      setShowAdminAuth(true);
+      handleMenuClose();
+      return;
+    }
+    // For admin users, show confirmation dialog
+    if (window.confirm(`Are you sure you want to delete "${selectedItem.name}" (${selectedItem.partNumber})? This action cannot be undone.`)) {
+      setInventoryData(prev => prev.filter(item => item.id !== selectedItem.id));
+      handleMenuClose();
+    }
+  };
+
+  const handleAdminAuth = () => {
+    // Simple password check for demo - in production, this would be a proper API call
+    if (adminPassword === 'admin123') {
+      setShowAdminAuth(false);
+      setAdminPassword('');
+      
+      if (pendingAction === 'adjust') {
+        setAdjustCountData({
+          newCount: selectedItem?.warehouseStock || 0,
+          reason: '',
+          adminPassword: ''
+        });
+        setDialogType('adjust');
+        setOpenDialog(true);
+      } else if (pendingAction === 'delete') {
+        if (window.confirm(`Are you sure you want to delete "${selectedItem?.name}" (${selectedItem?.partNumber})? This action cannot be undone.`)) {
+          setInventoryData(prev => prev.filter(item => item.id !== selectedItem?.id));
+        }
+      }
+      setPendingAction(null);
+    } else {
+      alert('Invalid admin password');
+    }
+  };
+
+  const handleSaveEdit = () => {
+    if (!selectedItem || !editFormData) return;
+    
+    setInventoryData(prev => 
+      prev.map(item => 
+        item.id === selectedItem.id 
+          ? { 
+              ...item, 
+              ...editFormData,
+              status: calculateItemStatus({ ...item, ...editFormData } as InventoryItem)
+            }
+          : item
+      )
+    );
+    setOpenDialog(false);
+    setSelectedItem(null);
+    setEditFormData({});
+  };
+
+  const handleSaveMoveStock = () => {
+    if (!selectedItem || !moveStockData.toLocation || moveStockData.quantity <= 0) return;
+    
+    const updatedItem = { ...selectedItem };
+    
+    // Move stock logic
+    if (moveStockData.fromLocation === 'warehouse' && moveStockData.toLocation === 'trucks') {
+      updatedItem.warehouseStock -= moveStockData.quantity;
+      updatedItem.truckStock += moveStockData.quantity;
+    } else if (moveStockData.fromLocation === 'trucks' && moveStockData.toLocation === 'warehouse') {
+      updatedItem.truckStock -= moveStockData.quantity;
+      updatedItem.warehouseStock += moveStockData.quantity;
+    }
+    
+    updatedItem.totalStock = updatedItem.warehouseStock + updatedItem.truckStock;
+    updatedItem.status = calculateItemStatus(updatedItem);
+    
+    setInventoryData(prev => 
+      prev.map(item => item.id === selectedItem.id ? updatedItem : item)
+    );
+    
+    setOpenDialog(false);
+    setSelectedItem(null);
+    setMoveStockData({ fromLocation: '', toLocation: '', quantity: 0 });
+  };
+
+  const handleSaveAdjustCount = () => {
+    if (!selectedItem || !adjustCountData.reason) return;
+    
+    const updatedItem = {
+      ...selectedItem,
+      warehouseStock: adjustCountData.newCount,
+      totalStock: adjustCountData.newCount + selectedItem.truckStock
+    };
+    updatedItem.status = calculateItemStatus(updatedItem);
+    
+    setInventoryData(prev => 
+      prev.map(item => item.id === selectedItem.id ? updatedItem : item)
+    );
+    
+    // Log the adjustment for audit trail (in production, this would go to a database)
+    console.log('Stock adjustment:', {
+      item: selectedItem.partNumber,
+      oldCount: selectedItem.warehouseStock,
+      newCount: adjustCountData.newCount,
+      reason: adjustCountData.reason,
+      user: user?.username,
+      timestamp: new Date().toISOString()
+    });
+    
+    setOpenDialog(false);
+    setSelectedItem(null);
+    setAdjustCountData({ newCount: 0, reason: '', adminPassword: '' });
+  };
+
+  // Helper function to calculate item status based on stock levels
+  const calculateItemStatus = (item: InventoryItem): 'In Stock' | 'Low Stock' | 'Out of Stock' | 'Overstocked' => {
+    const totalStock = item.warehouseStock + item.truckStock;
+    if (totalStock === 0) return 'Out of Stock';
+    if (totalStock <= item.minStock) return 'Low Stock';
+    if (totalStock >= item.maxStock && item.maxStock > 0) return 'Overstocked';
+    return 'In Stock';
+  };
+
   const handleShowReceivedOrderDetails = (order: ReceivedOrder) => {
     // Find the original PO by number
     const originalPO = purchaseOrders.find(po => po.poNumber === order.poNumber);
@@ -1601,7 +1787,7 @@ const Inventory: React.FC = () => {
                 <TableCell align="right" sx={{ minWidth: 80 }}>${item.cost.toFixed(2)}</TableCell>
                 <TableCell align="right" sx={{ minWidth: 100 }}>${item.sellingPrice.toFixed(2)}</TableCell>
                 <TableCell align="center" sx={{ minWidth: 60 }}>
-                  <IconButton onClick={handleMenuOpen} size="small">
+                  <IconButton onClick={(event) => handleMenuOpen(event, item)} size="small">
                     <MoreVertIcon />
                   </IconButton>
                 </TableCell>
@@ -3146,59 +3332,288 @@ const Inventory: React.FC = () => {
         open={Boolean(anchorEl)}
         onClose={handleMenuClose}
       >
-        <MenuItem onClick={() => {
-          handleOpenDialog('edit', selectedItem);
-          handleMenuClose();
-        }}>
+        <MenuItem onClick={handleEditItem}>
           <EditIcon sx={{ mr: 1 }} />
           Edit Item
         </MenuItem>
-        <MenuItem onClick={() => {
-          handleOpenDialog('move', selectedItem);
-          handleMenuClose();
-        }}>
+        <MenuItem onClick={handleMoveStock}>
           <TruckIcon sx={{ mr: 1 }} />
           Move Stock
         </MenuItem>
-        <MenuItem onClick={() => {
-          handleOpenDialog('adjust', selectedItem);
-          handleMenuClose();
-        }}>
+        <MenuItem onClick={handleAdjustCount}>
           <EditIcon sx={{ mr: 1 }} />
-          Adjust Count
+          Adjust Count {!isAdmin() && <Typography variant="caption" sx={{ ml: 1, color: 'warning.main' }}>(Requires Admin)</Typography>}
         </MenuItem>
-        <MenuItem onClick={handleMenuClose} sx={{ color: 'error.main' }}>
+        <MenuItem onClick={handleDeleteItem} sx={{ color: 'error.main' }}>
           <DeleteIcon sx={{ mr: 1 }} />
-          Delete Item
+          Delete Item {!isAdmin() && <Typography variant="caption" sx={{ ml: 1, color: 'warning.main' }}>(Requires Admin)</Typography>}
         </MenuItem>
       </Menu>
 
       {/* Dialog for Add/Edit/Move/Adjust */}
-      <Dialog open={openDialog && ['add', 'edit', 'move', 'adjust'].includes(dialogType)} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+      <Dialog open={openDialog && ['add', 'edit', 'move', 'adjust'].includes(dialogType)} onClose={handleCloseDialog} maxWidth="md" fullWidth>
         <DialogTitle>
           {dialogType === 'add' && 'Add New Inventory Item'}
-          {dialogType === 'edit' && 'Edit Inventory Item'}
-          {dialogType === 'move' && 'Move Stock'}
-          {dialogType === 'adjust' && 'Adjust Stock Count'}
+          {dialogType === 'edit' && `Edit ${selectedItem?.name || 'Inventory Item'}`}
+          {dialogType === 'move' && `Move Stock - ${selectedItem?.name || 'Item'}`}
+          {dialogType === 'adjust' && `Adjust Stock Count - ${selectedItem?.name || 'Item'}`}
         </DialogTitle>
         <DialogContent>
-          <Alert severity="info" sx={{ mb: 2 }}>
-            This is a demo interface. In a real application, this would connect to your database.
-          </Alert>
-          <Typography>
-            {dialogType === 'add' && 'Add new SKU and inventory item'}
-            {dialogType === 'edit' && 'Edit item details and pricing'}
-            {dialogType === 'move' && 'Move stock between warehouse, trucks, and allocations'}
-            {dialogType === 'adjust' && 'Manually adjust stock counts'}
-      </Typography>
+          <Box sx={{ pt: 2 }}>
+            {dialogType === 'add' && (
+              <Alert severity="info" sx={{ mb: 2 }}>
+                This is a demo interface. In a real application, this would connect to your database.
+              </Alert>
+            )}
+
+            {dialogType === 'edit' && selectedItem && (
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Part Number"
+                    value={editFormData.partNumber || ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, partNumber: e.target.value }))}
+                    margin="normal"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Name"
+                    value={editFormData.name || ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, name: e.target.value }))}
+                    margin="normal"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Description"
+                    value={editFormData.description || ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, description: e.target.value }))}
+                    margin="normal"
+                    multiline
+                    rows={2}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Manufacturer"
+                    value={editFormData.manufacturer || ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, manufacturer: e.target.value }))}
+                    margin="normal"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Category"
+                    value={editFormData.category || ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, category: e.target.value }))}
+                    margin="normal"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Cost"
+                    type="number"
+                    value={editFormData.cost || ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, cost: parseFloat(e.target.value) || 0 }))}
+                    margin="normal"
+                    InputProps={{
+                      startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Selling Price"
+                    type="number"
+                    value={editFormData.sellingPrice || ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, sellingPrice: parseFloat(e.target.value) || 0 }))}
+                    margin="normal"
+                    InputProps={{
+                      startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Min Stock Level"
+                    type="number"
+                    value={editFormData.minStock || ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, minStock: parseInt(e.target.value) || 0 }))}
+                    margin="normal"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Max Stock Level"
+                    type="number"
+                    value={editFormData.maxStock || ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, maxStock: parseInt(e.target.value) || 0 }))}
+                    margin="normal"
+                  />
+                </Grid>
+              </Grid>
+            )}
+
+            {dialogType === 'move' && selectedItem && (
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <Alert severity="info" sx={{ mb: 2 }}>
+                    Current Stock: Warehouse ({selectedItem.warehouseStock}) • Trucks ({selectedItem.truckStock})
+                  </Alert>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <FormControl fullWidth margin="normal">
+                    <InputLabel>From Location</InputLabel>
+                    <Select
+                      value={moveStockData.fromLocation}
+                      onChange={(e) => setMoveStockData(prev => ({ ...prev, fromLocation: e.target.value }))}
+                      label="From Location"
+                    >
+                      <MenuItem value="warehouse">Warehouse</MenuItem>
+                      <MenuItem value="trucks">Service Trucks</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <FormControl fullWidth margin="normal">
+                    <InputLabel>To Location</InputLabel>
+                    <Select
+                      value={moveStockData.toLocation}
+                      onChange={(e) => setMoveStockData(prev => ({ ...prev, toLocation: e.target.value }))}
+                      label="To Location"
+                    >
+                      <MenuItem value="warehouse">Warehouse</MenuItem>
+                      <MenuItem value="trucks">Service Trucks</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Quantity to Move"
+                    type="number"
+                    value={moveStockData.quantity || ''}
+                    onChange={(e) => setMoveStockData(prev => ({ ...prev, quantity: parseInt(e.target.value) || 0 }))}
+                    margin="normal"
+                    inputProps={{ 
+                      min: 1, 
+                      max: moveStockData.fromLocation === 'warehouse' ? selectedItem.warehouseStock : selectedItem.truckStock
+                    }}
+                    helperText={`Available: ${moveStockData.fromLocation === 'warehouse' ? selectedItem.warehouseStock : selectedItem.truckStock} units`}
+                  />
+                </Grid>
+              </Grid>
+            )}
+
+            {dialogType === 'adjust' && selectedItem && (
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <Alert severity="warning" sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2" gutterBottom>Stock Count Adjustment</Typography>
+                    Current warehouse stock: <strong>{selectedItem.warehouseStock} units</strong>
+                    <br />
+                    This action requires admin privileges and will be logged for audit purposes.
+                  </Alert>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="New Stock Count"
+                    type="number"
+                    value={adjustCountData.newCount || ''}
+                    onChange={(e) => setAdjustCountData(prev => ({ ...prev, newCount: parseInt(e.target.value) || 0 }))}
+                    margin="normal"
+                    inputProps={{ min: 0 }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="body2" sx={{ mt: 3, p: 2, bgcolor: 'background.paper', border: 1, borderColor: 'divider', borderRadius: 1 }}>
+                    <strong>Adjustment:</strong> {adjustCountData.newCount - selectedItem.warehouseStock > 0 ? '+' : ''}{adjustCountData.newCount - selectedItem.warehouseStock} units
+                  </Typography>
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Reason for Adjustment"
+                    value={adjustCountData.reason}
+                    onChange={(e) => setAdjustCountData(prev => ({ ...prev, reason: e.target.value }))}
+                    margin="normal"
+                    multiline
+                    rows={3}
+                    required
+                    placeholder="e.g., Physical count discrepancy, damaged goods, theft, etc."
+                  />
+                </Grid>
+              </Grid>
+            )}
+          </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button variant="contained" onClick={handleCloseDialog}>
-            {dialogType === 'add' && 'Add Item'}
-            {dialogType === 'edit' && 'Save Changes'}
-            {dialogType === 'move' && 'Move Stock'}
-            {dialogType === 'adjust' && 'Adjust Count'}
+          {dialogType === 'edit' && (
+            <Button variant="contained" onClick={handleSaveEdit} disabled={!editFormData.name || !editFormData.partNumber}>
+              Save Changes
+            </Button>
+          )}
+          {dialogType === 'move' && (
+            <Button 
+              variant="contained" 
+              onClick={handleSaveMoveStock}
+              disabled={!moveStockData.toLocation || moveStockData.quantity <= 0 || moveStockData.fromLocation === moveStockData.toLocation}
+            >
+              Move Stock
+            </Button>
+          )}
+          {dialogType === 'adjust' && (
+            <Button 
+              variant="contained" 
+              onClick={handleSaveAdjustCount}
+              disabled={!adjustCountData.reason.trim()}
+              color="warning"
+            >
+              Adjust Count
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
+
+      {/* Admin Authentication Dialog */}
+      <Dialog open={showAdminAuth} onClose={() => setShowAdminAuth(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Admin Authentication Required</DialogTitle>
+        <DialogContent>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            This action requires admin privileges. Please enter the admin password to continue.
+          </Alert>
+          <TextField
+            fullWidth
+            label="Admin Password"
+            type="password"
+            value={adminPassword}
+            onChange={(e) => setAdminPassword(e.target.value)}
+            margin="normal"
+            onKeyPress={(e) => e.key === 'Enter' && handleAdminAuth()}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setShowAdminAuth(false);
+            setAdminPassword('');
+            setPendingAction(null);
+          }}>
+            Cancel
+          </Button>
+          <Button variant="contained" onClick={handleAdminAuth} disabled={!adminPassword}>
+            Authenticate
           </Button>
         </DialogActions>
       </Dialog>
