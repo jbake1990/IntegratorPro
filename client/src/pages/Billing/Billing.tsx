@@ -189,7 +189,7 @@ const Billing: React.FC = () => {
     setActiveTab(newValue);
   };
 
-  const handleOpenDialog = (type: 'create' | 'edit' | 'view', invoice?: Invoice) => {
+  const handleOpenDialog = (type: 'create' | 'edit' | 'view', invoice?: Invoice | null) => {
     setDialogType(type);
     if (invoice) {
       setSelectedInvoice(invoice);
