@@ -62,8 +62,17 @@ const Layout: React.FC = () => {
   const drawer = (
     <Box>
       <Box sx={{ p: 2, borderBottom: 1, borderColor: '#374151' }}>
-        <Typography variant="h6" component="div" sx={{ color: '#FFFFFF', fontWeight: 600 }}>
-          Integrator Pro
+        <Typography 
+          variant="h5" 
+          component="div" 
+          sx={{ 
+            fontWeight: 700,
+            fontSize: '1.5rem',
+            lineHeight: 1.2,
+          }}
+        >
+          <span style={{ color: '#FFFFFF' }}>Integrator</span>{' '}
+          <span style={{ color: '#2563EB' }}>Pro</span>
         </Typography>
       </Box>
       <List>
