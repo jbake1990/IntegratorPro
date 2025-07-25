@@ -1,16 +1,84 @@
+/* ============================================================================
+   INTEGRATOR PRO STYLE GUIDE
+   ============================================================================
+   Color Scheme:
+   - Charcoal: #1F2937 (Primary dark, navigation, text)
+   - AV Blue: #2563EB (Primary brand color, buttons, links)
+   - Integration Green: #22C55E (Success states, positive actions)
+   - Alert Orange: #F59E0B (Warnings, attention-grabbing elements)
+   - Light UI Gray: #F1F5F9 (Backgrounds, subtle borders)
+   
+   Typography:
+   - Primary Font: Inter (Google Fonts)
+   ============================================================================ */
+
+:root {
+  /* Color Palette */
+  --color-charcoal: #1F2937;
+  --color-charcoal-light: #374151;
+  --color-charcoal-dark: #111827;
+  
+  --color-av-blue: #2563EB;
+  --color-av-blue-light: #3B82F6;
+  --color-av-blue-dark: #1D4ED8;
+  
+  --color-integration-green: #22C55E;
+  --color-integration-green-light: #34D399;
+  --color-integration-green-dark: #16A34A;
+  
+  --color-alert-orange: #F59E0B;
+  --color-alert-orange-light: #FBBF24;
+  --color-alert-orange-dark: #D97706;
+  
+  --color-light-ui-gray: #F1F5F9;
+  --color-light-ui-gray-darker: #E2E8F0;
+  --color-light-ui-gray-darkest: #CBD5E1;
+  
+  /* Semantic Colors */
+  --color-error: #EF4444;
+  --color-error-light: #F87171;
+  --color-error-dark: #DC2626;
+  
+  --color-warning: var(--color-alert-orange);
+  --color-success: var(--color-integration-green);
+  --color-info: var(--color-av-blue);
+  
+  /* Typography */
+  --font-family-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  --font-family-mono: 'SF Mono', Monaco, Inconsolata, 'Roboto Mono', source-code-pro, Menlo, Consolas, 'Courier New', monospace;
+  
+  /* Spacing Scale */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+  
+  /* Border Radius */
+  --border-radius-sm: 4px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  --border-radius-xl: 16px;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: var(--font-family-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f5f5f5;
+  background-color: var(--color-light-ui-gray);
+  color: var(--color-charcoal);
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: var(--font-family-mono);
 }
 
 /* Custom scrollbar */
@@ -20,17 +88,17 @@ code {
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
+  background: var(--color-light-ui-gray);
+  border-radius: var(--border-radius-sm);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 4px;
+  background: var(--color-light-ui-gray-darkest);
+  border-radius: var(--border-radius-sm);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+  background: var(--color-charcoal-light);
 }
 
 /* Utility classes */
@@ -47,55 +115,92 @@ code {
 }
 
 .mb-1 {
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-sm);
 }
 
 .mb-2 {
-  margin-bottom: 16px;
+  margin-bottom: var(--spacing-md);
 }
 
 .mb-3 {
-  margin-bottom: 24px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .mt-1 {
-  margin-top: 8px;
+  margin-top: var(--spacing-sm);
 }
 
 .mt-2 {
-  margin-top: 16px;
+  margin-top: var(--spacing-md);
 }
 
 .mt-3 {
-  margin-top: 24px;
+  margin-top: var(--spacing-lg);
 }
 
 .ml-1 {
-  margin-left: 8px;
+  margin-left: var(--spacing-sm);
 }
 
 .ml-2 {
-  margin-left: 16px;
+  margin-left: var(--spacing-md);
 }
 
 .mr-1 {
-  margin-right: 8px;
+  margin-right: var(--spacing-sm);
 }
 
 .mr-2 {
-  margin-right: 16px;
+  margin-right: var(--spacing-md);
 }
 
 .p-1 {
-  padding: 8px;
+  padding: var(--spacing-sm);
 }
 
 .p-2 {
-  padding: 16px;
+  padding: var(--spacing-md);
 }
 
 .p-3 {
-  padding: 24px;
+  padding: var(--spacing-lg);
+}
+
+/* Color utility classes */
+.text-charcoal {
+  color: var(--color-charcoal);
+}
+
+.text-av-blue {
+  color: var(--color-av-blue);
+}
+
+.text-integration-green {
+  color: var(--color-integration-green);
+}
+
+.text-alert-orange {
+  color: var(--color-alert-orange);
+}
+
+.bg-charcoal {
+  background-color: var(--color-charcoal);
+}
+
+.bg-av-blue {
+  background-color: var(--color-av-blue);
+}
+
+.bg-integration-green {
+  background-color: var(--color-integration-green);
+}
+
+.bg-alert-orange {
+  background-color: var(--color-alert-orange);
+}
+
+.bg-light-ui-gray {
+  background-color: var(--color-light-ui-gray);
 }
 
 /* Print styles */
