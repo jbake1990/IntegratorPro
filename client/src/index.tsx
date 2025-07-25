@@ -188,6 +188,10 @@ const theme = createTheme({
         root: {
           borderRadius: 12,
           backgroundImage: 'none',
+          // Remove border radius for drawer papers
+          '&.MuiDrawer-paper': {
+            borderRadius: '0 !important',
+          },
         },
         elevation1: {
           boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
@@ -215,6 +219,7 @@ const theme = createTheme({
           backgroundColor: '#1F2937', // Charcoal
           color: '#FFFFFF',
           borderRight: '1px solid #374151',
+          borderRadius: '0 !important', // Remove rounded corners
         },
       },
     },
@@ -223,14 +228,53 @@ const theme = createTheme({
         root: {
           borderRadius: 8,
           margin: '4px 8px',
+          color: '#FFFFFF', // Ensure white text
           '&:hover': {
             backgroundColor: '#374151',
+            color: '#FFFFFF',
           },
           '&.Mui-selected': {
             backgroundColor: '#2563EB', // AV Blue
+            color: '#FFFFFF',
             '&:hover': {
               backgroundColor: '#1D4ED8',
+              color: '#FFFFFF',
             },
+          },
+        },
+      },
+    },
+    MuiListItemIcon: {
+      styleOverrides: {
+        root: {
+          color: '#FFFFFF', // Ensure white icons
+          minWidth: '40px',
+        },
+      },
+    },
+    MuiListItemText: {
+      styleOverrides: {
+        root: {
+          color: '#FFFFFF', // Ensure white text
+        },
+        primary: {
+          color: '#FFFFFF',
+          fontWeight: 500,
+        },
+      },
+    },
+    MuiDivider: {
+      styleOverrides: {
+        root: {
+          borderColor: '#374151', // Visible divider on dark background
+        },
+      },
+    },
+    MuiTypography: {
+      styleOverrides: {
+        root: {
+          '&.MuiTypography-h6': {
+            color: '#FFFFFF', // Ensure header text is white in drawer
           },
         },
       },

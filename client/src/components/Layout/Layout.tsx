@@ -61,8 +61,8 @@ const Layout: React.FC = () => {
 
   const drawer = (
     <Box>
-      <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
-        <Typography variant="h6" component="div">
+      <Box sx={{ p: 2, borderBottom: 1, borderColor: '#374151' }}>
+        <Typography variant="h6" component="div" sx={{ color: '#FFFFFF', fontWeight: 600 }}>
           Integrator Pro
         </Typography>
       </Box>
@@ -93,11 +93,20 @@ const Layout: React.FC = () => {
       <Divider />
       <List>
         <ListItem disablePadding>
-          <ListItemButton onClick={handleLogout}>
-            <ListItemIcon>
+          <ListItemButton 
+            onClick={handleLogout}
+            sx={{
+              color: '#FFFFFF',
+              '&:hover': {
+                backgroundColor: '#374151',
+                color: '#FFFFFF',
+              },
+            }}
+          >
+            <ListItemIcon sx={{ color: '#FFFFFF' }}>
               <LogoutIcon />
             </ListItemIcon>
-            <ListItemText primary="Logout" />
+            <ListItemText primary="Logout" sx={{ color: '#FFFFFF' }} />
           </ListItemButton>
         </ListItem>
       </List>
